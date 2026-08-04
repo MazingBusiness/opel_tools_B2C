@@ -24,6 +24,7 @@ B2C (`opel-tools-b2c`) installs packages that are **actually used** in the B2B r
 | Package | Why |
 | --- | --- |
 | `zustand` | Global state (auth, cart, UI). B2B used scattered `localStorage`; Zustand is the B2C approach going forward. |
+| `@tanstack/react-query` | Server/async state (API fetching, caching, refetch). B2B used ad-hoc axios + local state; React Query is the B2C approach for remote data. |
 
 ## Skipped from B2B `package.json`
 
@@ -47,10 +48,11 @@ B2B styling is custom plain CSS:
 ## Install command used
 
 ```bash
-npm install axios zustand react-router-dom react-icons react-slick slick-carousel react-hot-toast sweetalert2 react-responsive-carousel react-calendar recharts
+npm install axios zustand @tanstack/react-query react-router-dom react-icons react-slick slick-carousel react-hot-toast sweetalert2 react-responsive-carousel react-calendar recharts
 ```
 
 ## Notes
 
-- App wiring (router shell, Zustand stores, style port) is a separate step.
+- App wiring (router shell, Zustand stores, React Query `QueryClientProvider`, style port) is a separate step.
+- Use **Zustand** for client/UI state and **TanStack React Query** for server/async data — do not duplicate remote cache in Zustand.
 - Core stack remains Vite + React (see [01-project-initialisation.md](./01-project-initialisation.md)).
