@@ -1,0 +1,715 @@
+import { useState, useEffect, useRef, useMemo  } from "react";
+import { FiX } from "react-icons/fi";
+import cartIcon from "../assets/images/product.jpg";
+import { MdArrowBackIos } from "react-icons/md";
+import { BsCloudArrowDownFill } from "react-icons/bs";
+import { BiSolidCart } from "react-icons/bi";
+
+import SaveLatericon from "../assets/icons/SaveLatericon.svg";
+import SaveLatericon1 from "../assets/icons/SaveLatericon1.svg";
+import Deleteicon from "../assets/icons/Deleteicon.svg";
+import noImage from "../assets/images/no-image.png";
+import fastDeliveryIcon from "../assets/icons/fast-delivery.svg";
+import HeartIcon from "../assets/icons/HeartIcon.svg";
+import CartIcon from "../assets/icons/CartIcon.svg";
+import warrantyIcon from "../assets/icons/warranty.jpeg";
+
+import OfferModal from "../components/OfferModal.jsx";
+
+import { useNavigate } from "react-router-dom";
+
+import { cart, updateQuantity } from "../api/apiRequest";
+
+const renderWarrantyTag = (product) => {
+  if (!product.is_warranty) return null;   // ✅ now this exists
+  return (
+    <div className="delivery">
+      <img src={warrantyIcon} alt="Warranty" loading="lazy" style={{ width: "50px", height: "auto" }} />
+    </div>
+  );
+};
+const fastDeliveryTag = (product) => {
+    if (!product.fast_delivery_tag == 1) return null;
+    return (
+      <div className="delivery">
+        <img src={fastDeliveryIcon} alt="Fast Delivery" loading="lazy"
+          onError={(e) => {
+            e.target.style.display = "none";
+          }}
+        />
+      </div>
+    );
+  };
+
+const initialSavedItems = [
+  { id: 4, name: "Electric Oil Pump", price: 999, category: "ELECTRIC OIL PUMP", },
+  { id: 5, name: "Tool Kit Pro", price: 1200, category: "TOOL KIT" },
+  { id: 6, name: "Air Blower Turbo", price: 1100, category: "AIR BLOWER" },
+  { id: 7, name: "Electric Oil Pump V2", price: 1050, category: "ELECTRIC OIL PUMP", },
+];
+
+const getProductImage = (product) => {
+  // images is an array in your API
+  const url = product?.images?.[0]?.file_name;
+  // if url empty/null => show noImage
+  if (!url) return noImage;
+  // if already full URL => return as-is
+  if (url.startsWith("http")) return url;
+  // if sometimes backend sends only filename/path, build it (optional)
+  const BACKEND = process.env.REACT_APP_BACKEND_URL || "https://mazingbusiness.com";
+  return `${BACKEND}/${url.replace(/^\/+/, "")}`;
+};
+
+const CartSlide = ({ isCartVisible, toggleCart }) => {
+  const [cartItems, setCartItems] = useState([]);
+  const [savedItems, setSavedItems] = useState(initialSavedItems);
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedCartIds, setSelectedCartIds] = useState([]);
+  const [selectedSavedIds, setSelectedSavedIds] = useState([]);
+  const [cartSubTotal, setCartSubTotal] = useState(0);
+  const [noCreditItemTotalAmount, setNoCreditItemTotalAmount] = useState(0);
+  const [cartCount, setCartCount] = useState(0);
+  const [isOfferModalOpen, setOfferModalOpen] = useState(false);
+  const [overDueAmount, setOverDueAmount] = useState(0);
+  const [qtyTimers, setQtyTimers] = useState({});
+  const [subTotal, setSubTotal] = useState(0);
+  const [totalPayable, setTotalPayable] = useState(0);
+  const [cartLoading, setCartLoading] = useState(false);      // for cartData()
+  const [updatingQty, setUpdatingQty] = useState({});         // { [itemId]: true/false }
+
+  const saveForLaterOriginalRef = useRef([]);
+  const [saveForLaterItems, setSaveForLaterItems] = useState([]);
+  const [saveForLaterCount, setSaveForLaterCount] = useState(0);
+  const [saveForLaterCategory, setSaveForLaterCategory] = useState([]);
+
+  const navigate = useNavigate();
+
+  const handleCheckout = () => {
+    navigate("/company");
+  };
+
+  const cartData = async () => {
+    setCartLoading(true);
+    try {
+      const responseData = await cart();
+      if (responseData.res) {
+        const cart_item = responseData.cart_item || [];
+        const cartSubTotal = Number(responseData.other_item_total_amount || 0);
+        const noCreditItemTotalAmount = Number(responseData.no_credit_item_total_amount || 0);
+        const overDueAmount = Number(responseData.over_due_amount || 0);
+
+        const save_for_later = responseData.save_for_later || [];
+        const save_for_later_category = responseData.save_for_later_category || [];
+
+
+        setCartItems(cart_item);
+        setCartCount(cart_item.length);
+
+        setCartSubTotal(cartSubTotal);
+        setNoCreditItemTotalAmount(noCreditItemTotalAmount);
+        setOverDueAmount(overDueAmount);
+
+        setSubTotal(cartSubTotal + noCreditItemTotalAmount);
+        setTotalPayable(cartSubTotal + noCreditItemTotalAmount + overDueAmount);
+
+        setSaveForLaterItems(save_for_later);
+        setSaveForLaterCount(save_for_later.length);
+        setSaveForLaterCategory(save_for_later_category);
+        // ✅ keep original order for "All"
+        saveForLaterOriginalRef.current = save_for_later;
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setCartLoading(false);
+    }
+  };
+
+  const handleQtyChange = (itemId, rawValue) => {
+    const newQty = Math.max(1, Number(rawValue) || 1);
+
+    // update UI immediately (this triggers the useEffect totals recalculation)
+    setCartItems((prev) =>
+      prev.map((i) => (i.id === itemId ? { ...i, quantity: newQty } : i))
+    );
+
+    // debounce API call
+    if (qtyTimers[itemId]) clearTimeout(qtyTimers[itemId]);
+
+    setUpdatingQty((p) => ({ ...p, [itemId]: true }));
+
+    const t = setTimeout(async () => {
+      try {
+        await updateQuantity({ cart_id: itemId, quantity: newQty }); // adjust keys if needed
+        // optional: cartData() to sync exact totals from backend
+        await cartData();
+        window.dispatchEvent(new Event("cart-updated"));
+      } catch (err) {
+        console.error(err);
+        await cartData(); // revert from server on failure
+      } finally {
+        setUpdatingQty((p) => ({ ...p, [itemId]: false }));
+      }
+    }, 400);
+
+    setQtyTimers((prev) => ({ ...prev, [itemId]: t }));
+  };
+
+  const handleQtyBlur = async (item) => {
+    // flush: if debounce pending, clear it and send immediately
+    if (qtyTimers[item.id]) {
+      clearTimeout(qtyTimers[item.id]);
+      setQtyTimers((prev) => {
+        const copy = { ...prev };
+        delete copy[item.id];
+        return copy;
+      });
+    }
+
+    setUpdatingQty((p) => ({ ...p, [item.id]: true }));
+
+    try {
+      await updateQuantity({ cart_id: item.id, quantity: item.quantity });
+      await cartData();
+    } catch (err) {
+      console.error(err);
+      await cartData();
+    } finally {
+      setUpdatingQty((p) => ({ ...p, [item.id]: false }));
+    }
+  };
+
+  const getItemCategory = (item) =>
+    item?.product?.category_name ||
+    item?.product?.category?.name ||
+    item?.category_name ||
+    item?.category ||
+    "UNCATEGORIZED";
+
+  const isSameCategory = (a, b) =>
+    String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase();
+
+  const sortedSaveForLaterItems = useMemo(() => {
+    const list =
+      saveForLaterOriginalRef.current?.length
+        ? saveForLaterOriginalRef.current
+        : saveForLaterItems;
+
+    if (selectedCategory === "All") return list;
+
+    const selected = [];
+    const others = [];
+
+    for (const it of list) {
+      if (isSameCategory(getItemCategory(it), selectedCategory)) {
+        selected.push(it);
+      } else {
+        others.push(it);
+      }
+    }
+
+    return [...selected, ...others];
+  }, [saveForLaterItems, selectedCategory]);
+
+
+
+    const baseSaveForLaterList =
+      saveForLaterOriginalRef.current.length
+        ? saveForLaterOriginalRef.current
+        : saveForLaterItems;
+
+    // const sortedSaveForLaterItems = (() => {
+    //   const list =
+    //     saveForLaterOriginalRef.current.length
+    //       ? saveForLaterOriginalRef.current
+    //       : saveForLaterItems;
+
+    //   if (selectedCategory === "All") return list;
+
+    //   const selected = [];
+    //   const others = [];
+
+    //   for (const it of list) {
+    //     if (isSameCategory(getItemCategory(it), selectedCategory)) {
+    //       selected.push(it);
+    //     } else {
+    //       others.push(it);
+    //     }
+    //   }
+
+    //   return [...selected, ...others];
+    // })();
+
+  useEffect(() => {
+    cartData(); // first load when header renders
+    const handler = () => cartData(); // when cart-updated happens, refresh
+    window.addEventListener("cart-updated", handler);
+    return () => {
+      window.removeEventListener("cart-updated", handler);
+    };
+  }, []);
+
+  useEffect(() => {
+    let other = 0;
+    let noCredit = 0;
+
+    for (const item of cartItems) {
+      const qty = Number(item.quantity || 1); // ✅ use ONLY quantity everywhere
+      const lineTotal = Number(item.price || 0) * qty;
+
+      if (item?.product?.cash_and_carry_item == 1) noCredit += lineTotal;
+      else other += lineTotal;
+    }
+
+    setCartSubTotal(other);
+    setNoCreditItemTotalAmount(noCredit);
+
+    const st = other + noCredit;
+    setSubTotal(st);
+    setTotalPayable(st + Number(overDueAmount || 0));
+  }, [cartItems, overDueAmount]);
+
+  // 🔧 Fix: cart subtotal (use qty instead of quantity)
+  // const calculateCartSubtotal = () => {
+  //   return cartItems
+  //     .reduce((sum, item) => sum + item.price * item.qty, 0)
+  //     .toFixed(2);
+  // };
+
+  
+  // const calculateSavedSubtotal = () => {
+  //   return savedItems
+  //     .reduce((sum, item) => sum + item.price * (item.qty || 1), 0)
+  //     .toFixed(2);
+  // };
+
+  useEffect(() => {
+    document.body.style.overflow = isCartVisible ? "hidden" : "auto";
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, [isCartVisible]);
+
+  const handleCartCheckbox = (id) => {
+    setSelectedCartIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleSavedCheckbox = (id) => {
+    setSelectedSavedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAllCart = () => {
+    if (selectedCartIds.length === cartItems.length) {
+      setSelectedCartIds([]);
+    } else {
+      setSelectedCartIds(cartItems.map((item) => item.id));
+    }
+  };
+
+  const toggleSelectAllSaved = () => {
+    const currentIds = sortedSaveForLaterItems.map((item) => item.id);
+    if (currentIds.every((id) => selectedSavedIds.includes(id))) {
+      setSelectedSavedIds((prev) =>
+        prev.filter((id) => !currentIds.includes(id))
+      );
+    } else {
+      setSelectedSavedIds((prev) => [...new Set([...prev, ...currentIds])]);
+    }
+  };
+
+  const moveToSaved = (item) => {
+    setCartItems((prev) => prev.filter((i) => i.id !== item.id));
+    setSavedItems((prev) => [
+      ...prev,
+      { ...item, category: item.category || "UNCATEGORIZED" },
+    ]);
+    setSelectedCartIds((prev) => prev.filter((id) => id !== item.id));
+  };
+
+  const moveToCart = (item) => {
+    setSavedItems((prev) => prev.filter((i) => i.id !== item.id));
+    setCartItems((prev) => [...prev, { ...item, qty: 1 }]);
+    setSelectedSavedIds((prev) => prev.filter((id) => id !== item.id));
+  };
+
+  const deleteFromCart = (id) => {
+    setCartItems((prev) => prev.filter((i) => i.id !== id));
+    setSelectedCartIds((prev) => prev.filter((x) => x !== id));
+  };
+
+  const deleteFromSaved = (id) => {
+    setSavedItems((prev) => prev.filter((i) => i.id !== id));
+    setSelectedSavedIds((prev) => prev.filter((x) => x !== id));
+  };
+
+  const categoryCounts = savedItems.reduce((acc, item) => {
+    const category = item.category || "UNCATEGORIZED";
+    acc[category] = (acc[category] || 0) + 1;
+    return acc;
+  }, {});
+
+  const filteredSavedItems =
+    selectedCategory === "All"
+      ? savedItems
+      : savedItems.filter(
+          (item) => (item.category || "UNCATEGORIZED") === selectedCategory
+        );
+
+  const total = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const noCreditTotal = cartItems
+    .filter((i) => i.noCredit)
+    .reduce((sum, item) => sum + item.price, 0);
+
+  useEffect(() => {
+    if (saveForLaterItems.length) {
+      console.log("Selected Tab:", selectedCategory);
+      console.log("First item category:", getItemCategory(saveForLaterItems[0]));
+      console.log("All categories:", saveForLaterItems.map(getItemCategory));
+    }
+  }, [selectedCategory, saveForLaterItems]);
+
+  // if (String(getItemCategory(it)).toLowerCase() === String(selectedCategory).toLowerCase())
+  // const isSameCategory = (a, b) =>
+  //   String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase();
+
+  // for (const it of baseSaveForLaterList) {
+  //   if (isSameCategory(getItemCategory(it), selectedCategory)) selected.push(it);
+  //   else others.push(it);
+  // };
+    
+  return (
+    <>
+      <div
+        className={`cart-overlay ${isCartVisible ? "cart-overlay-show" : ""}`}
+        onClick={toggleCart}
+      ></div>
+
+      <div className={`cart-panel ${isCartVisible ? "slide-in" : "slide-out"}`}>
+        <div className="cart-wrapper">
+          <div className="cart-left">
+            <div className="backSec">
+              <button>
+                <MdArrowBackIos /> BACK TO STORE
+              </button>
+            </div>
+            {/* Shopping Cart */}
+            {cartItems.length > 0 && (
+              <div className="cart-section">
+                <h2>
+                  <span>
+                    Shopping Cart <BiSolidCart />
+                  </span>
+                  <span className="Cartitem">{cartItems.length} Items</span>
+                </h2>
+                <div className="cart-table-container">
+                  <table className="order-table">
+                    <thead>
+                      <tr>
+                        <th>
+                          <label className="animated-checkbox">
+                            <input
+                              type="checkbox"
+                              onChange={toggleSelectAllCart}
+                              checked={
+                                selectedCartIds.length === cartItems.length
+                              }
+                            />
+                            <span className="custom-check"></span>
+                          </label>
+                        </th>
+                        <th className="narrow1">Product</th>
+                        <th>Price</th>
+                        <th className="narrow3">Quantity</th>
+                        <th>Total</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cartItems.map((item) => (
+                        <tr key={item.id}>
+                          <td data-label="">
+                            <label className="animated-checkbox">
+                              <input type="checkbox" checked={selectedCartIds.includes(item.id)} onChange={() => handleCartCheckbox(item.id)} />
+                              <span className="custom-check"></span>
+                            </label>
+                          </td>
+                          <td className="narrow1" data-label="Product">
+                            <div className="cartproduct">
+                              <img src={getProductImage(item?.product)} alt={item?.product?.name || "Product"} width="70"
+                                onError={(e) => {
+                                  e.currentTarget.src = noImage;   // ✅ if broken link / 404
+                                }}
+                              />
+                              {" "}
+                              {item.product.name}
+                              {item.product.cash_and_carry_item == 1 && (
+                                <span className="no-credit">
+                                  No Credit Item
+                                </span>
+                              )}
+                            </div>
+                            <div className="ratingGrp">
+                              <div className="ratingGrpLft">
+                                {renderWarrantyTag(item.product)}
+                              </div>
+                              {fastDeliveryTag(item.product)}
+                            </div>
+                          </td>
+                          <td className="cartprice" data-label="Price">
+                            ₹ {item.price}
+                          </td>
+                          <td className="narrow3" data-label="Quantity">
+                            {/* <input type="number" min="1" value={item.quantity}
+                              onChange={(e) => {
+                                const newQty = Math.max(1, Number(e.target.value) || 1);
+                                setCartItems((prev) =>
+                                  prev.map((i) => (i.id === item.id ? { ...i, quantity: newQty } : i))
+                                );
+                              }}
+                              onBlur={async () => {
+                                try {
+                                  await updateQuantity({ id: item.id, quantity: item.quantity });
+                                  cartData(); // totals refresh
+                                } catch (err) {
+                                  console.error(err);
+                                  cartData(); // revert if failed
+                                }
+                              }}
+                            /> */}
+                            <input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) => handleQtyChange(item.id, e.target.value)}
+                              onBlur={() => handleQtyBlur(item)}
+                            />
+                            {updatingQty[item.id] && <span className="qty-loader">Updating...</span>}
+                          </td>
+                          <td className="cartprice" data-label="Total">
+                            ₹ {item.quantity * item.price}
+                          </td>
+                          <td data-label="Action">
+                            <button onClick={() => moveToSaved(item)}>
+                              {" "}
+                              <img src={SaveLatericon} alt="SaveLatericon" />
+                            </button>
+                            <button onClick={() => deleteFromCart(item.id)}>
+                              <img src={Deleteicon} alt="Deleteicon" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="cartSubtotal">
+                  <label>
+                    Subtotal:
+                    <span>₹{subTotal}</span>
+                  </label>
+
+                  <div className="section-buttons">
+                    <button className="greenbtn">
+                      Save all checked item for later
+                    </button>
+                    <button className="bluebtn">
+                      Save all no credit item for later
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Saved For Later */}
+            {saveForLaterCount > 0 && (
+              <div className="cart-section">
+                <h2>
+                  <span>Saved For Later</span>
+                  <span className="Cartitem">{saveForLaterCount} Items</span>
+                </h2>
+
+                {/* Category Tabs */}
+                <div className="cart-Category-Tabs">
+                  <h3>Selected Categories</h3>
+
+                  {saveForLaterItems.length > 0 && (
+                    <div className="category-tabs">
+                      <span
+                        className={`tab ${selectedCategory === "All" ? "active" : ""}`}
+                        onClick={() => setSelectedCategory("All")}
+                      >
+                        All ({saveForLaterCount})
+                      </span>
+
+                      {saveForLaterCategory.map((item) => (
+                        <span
+                          key={item.category_name}
+                          className={`tab ${selectedCategory === item.category_name ? "active" : ""}`}
+                          onClick={() => setSelectedCategory(item.category_name)}
+                        >
+                          {item.category_name} ({item.product_count})
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Filtered Table */}
+                {saveForLaterItems.length > 0 && (
+                  <div className="cart-table-container">
+                    <table className="order-table">
+                      <thead>
+                        <tr>
+                          <th>
+                            <label className="animated-checkbox">
+                              <input
+                                type="checkbox"
+                                onChange={toggleSelectAllSaved}
+                                checked={
+                                  saveForLaterItems.length > 0 &&
+                                  saveForLaterItems.every((item) =>
+                                    selectedSavedIds.includes(item.id)
+                                  )
+                                }
+                              />
+                              <span className="custom-check"></span>
+                            </label>
+                          </th>
+                          <th>Product</th>
+                          <th>Price</th>
+                          <th className="narrow5">Added Quantity</th>
+                          <th>Total</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sortedSaveForLaterItems.map((item) => (
+                          <tr key={item.id}>
+                            <td data-label="">
+                              <label className="animated-checkbox">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedSavedIds.includes(item.id)}
+                                  onChange={() => handleSavedCheckbox(item.id)}
+                                />
+                                <span className="custom-check"></span>
+                              </label>
+                            </td>
+
+                            <td className="narrow1" data-label="Product">
+                              <div className="cartproduct">
+                                <img src={getProductImage(item?.product)} alt={item?.product?.name || "Product"} width="70"
+                                  onError={(e) => {
+                                    e.currentTarget.src = noImage;   // ✅ if broken link / 404
+                                  }}
+                                />
+                                {" "}
+                                {item.product.name}
+                              </div>
+                            </td>
+
+                            <td className="cartprice" data-label="Price">
+                              ₹ {item.price}
+                            </td>
+
+                            <td className="narrow5" data-label="Added Quantity">
+                              <span>{item.quantity || 1}</span>
+                            </td>
+                            <td className="cartprice" data-label="Total">
+                              ₹ {(item.price * (item.quantity || 1)).toFixed(2)}
+                            </td>
+                            <td data-label="Action">
+                              <button onClick={() => moveToCart(item)}>
+                                {" "}
+                                <img
+                                  src={SaveLatericon1}
+                                  alt="SaveLatericon1"
+                                />
+                              </button>
+                              <button onClick={() => deleteFromSaved(item.id)}>
+                                <img src={Deleteicon} alt="Deleteicon" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                <div className="cartSubtotal">
+                  <div className="section-buttons">
+                    <button className="greenbtn">
+                      Move all checked item for cart
+                    </button>
+                    <button className="bluebtn">
+                      Move all no credit item for cart
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right Summary */}
+          <div className="cart-summary">
+            <div className="cart-panel-header">
+              <button className="cart-close-btn" onClick={toggleCart}>
+                <FiX />
+              </button>
+            </div>
+
+            <div className="cart-summary-content">
+              <h3>Summary</h3>
+
+              <label>
+                No Credit Item Subtotal:<span>₹ {noCreditItemTotalAmount}</span>
+              </label>
+              <label>
+                Other Item Subtotal:<span>₹{cartSubTotal}</span>  
+              </label>
+              {overDueAmount > 0 && (
+                <label>
+                  Overdue Amount:<span>₹ {overDueAmount}</span>
+                </label>
+              )}
+              <button className="download-pdf">
+                <BsCloudArrowDownFill /> Download Pdf
+              </button>
+            </div>
+
+            {/* Cart Footer */}
+            <div className="cart-panel-footer">
+              <div className="subtotal">
+                {}
+                Total Payable: <span>₹ {totalPayable}</span>
+              </div>
+              <button
+                className="checkout-btn Offer-btn"
+                onClick={() => setOfferModalOpen(true)}
+              >
+                Apply Offer
+              </button>
+              <button className="checkout-btn" onClick={handleCheckout}>
+                Checkout
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 🟢 Offer Modal */}
+      <OfferModal
+        isOpen={isOfferModalOpen}
+        onClose={() => setOfferModalOpen(false)}
+      />
+    </>
+  );
+};
+
+export default CartSlide;
