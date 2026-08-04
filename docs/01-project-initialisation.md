@@ -38,15 +38,23 @@ npm install
 
 ## Project structure
 
+Feature-based layout under `src/` (see [03-folder-structure.md](./03-folder-structure.md) for the full tree and conventions).
+
 ```
 .
-├── docs/                 # Project documentation
+├── docs/
 ├── public/
 │   └── favicon.svg
 ├── src/
-│   ├── App.jsx           # Root component (empty shell)
-│   ├── index.css         # Global reset
+│   ├── app/              # App shell: providers, router, store, layout
+│   ├── assets/
+│   ├── features/         # Domain features (auth, cart, home, …)
+│   ├── shared/           # Cross-feature api / components / utils
+│   ├── styles/
+│   ├── types/
+│   ├── index.css
 │   └── main.jsx          # App entry
+├── .env.example
 ├── index.html
 ├── package.json
 ├── vite.config.js
@@ -70,4 +78,4 @@ npm install
 2. Start the app: `npm run dev`
 3. Open the URL printed in the terminal (default `http://localhost:5173`)
 
-No environment variables are required for the current scaffold.
+Optional env (see `.env.example`): copy to `.env` and set `VITE_API_BASE_URL` when wiring the API.
