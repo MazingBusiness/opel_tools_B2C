@@ -12,6 +12,7 @@
 | React | `^19.2.8` |
 | React DOM | `^19.2.8` |
 | `@vitejs/plugin-react` | `^6.0.4` |
+| Tailwind CSS | v4 via `@tailwindcss/vite` (B2C UI from scratch) |
 | Linter | oxlint (`^1.75.0`) |
 | Language | JavaScript (JSX) |
 | Module type | ESM (`"type": "module"`) |
@@ -70,7 +71,7 @@ Feature-based layout under `src/` (see [03-folder-structure.md](./03-folder-stru
    - `src/App.css`
    - `public/icons.svg`
    - starter `README.md`
-4. Left `App` as a minimal empty component and `index.css` as a basic reset
+4. Left `App` as a minimal empty component; later wired feature-based `src/` layout and Tailwind v4 (see [02-dependencies.md](./02-dependencies.md), [03-folder-structure.md](./03-folder-structure.md), [04-homepage.md](./04-homepage.md))
 
 ## Required info to run locally
 

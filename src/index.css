@@ -1,7 +1,23 @@
-* {
-  box-sizing: border-box;
-}
+@import 'tailwindcss';
+@import './styles/theme.css';
+@import './styles/overrides.css';
 
-body {
-  margin: 0;
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    color: var(--color-ink);
+    background-color: var(--color-surface);
+  }
 }

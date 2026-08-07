@@ -4,4 +4,8 @@ import { create } from 'zustand'
 export const useUiStore = create((set) => ({
   isSidebarOpen: false,
   setSidebarOpen: (isSidebarOpen) => set({ isSidebarOpen }),
+
+  isAuthModalOpen: false,
+  openAuthModal: () => set({ isAuthModalOpen: true }),
+  closeAuthModal: () => set({ isAuthModalOpen: false }),
 }))
