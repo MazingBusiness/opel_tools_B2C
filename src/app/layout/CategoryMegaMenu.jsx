@@ -17,7 +17,12 @@ export default function CategoryMegaMenu({ category }) {
               {group.links.map((link) => (
                 <li key={link.slug}>
                   <Link
-                    to={`/products?category=${encodeURIComponent(link.slug)}`}
+                    to={
+                      category.slug === 'power-tools' &&
+                      link.slug === 'cordless-drills'
+                        ? '/category/power-tools/cordless-drills'
+                        : `/products?category=${encodeURIComponent(link.slug)}`
+                    }
                     className="text-sm text-ink-muted transition hover:text-brand"
                   >
                     {link.label}

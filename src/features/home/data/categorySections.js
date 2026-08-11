@@ -8,7 +8,7 @@ export const categorySections = [
   {
     id: 'power-tools',
     title: 'Power Tools',
-    viewAllHref: '/products?category=power-tools',
+    viewAllHref: '/category/power-tools',
     brands: [
       {
         id: 'pt-brand-1',
@@ -40,7 +40,7 @@ export const categorySections = [
         id: 'pt-sub-1',
         title: 'Cordless Drills',
         imageUrl: u('photo-1572981779307-38b8cabb2407', 640, 480),
-        href: '/products?sub=cordless-drills',
+        href: '/category/power-tools/cordless-drills',
       },
       {
         id: 'pt-sub-2',
