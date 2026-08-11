@@ -17,12 +17,14 @@ const IMG = {
   battery: 'photo-1597872200969-2b65d56bd16b',
 }
 
-function brand(id, name, photo, brandSlug) {
+function brand(id, name, photo, brandSlug, categorySlug = 'power-tools', subSlug = null) {
+  const params = new URLSearchParams({ category: categorySlug, brand: brandSlug })
+  if (subSlug) params.set('sub', subSlug)
   return {
     id,
     name,
     logoUrl: u(photo, 160, 160),
-    href: `/products?brand=${brandSlug}`,
+    href: `/products?${params.toString()}`,
   }
 }
 
@@ -49,12 +51,14 @@ function hero(id, photo, linkUrl) {
   }
 }
 
-const forgeProBrands = [
-  brand('pt-b1', 'ForgePro', IMG.workshop, 'forgepro'),
-  brand('pt-b2', 'VoltEdge', IMG.bench, 'voltedge'),
-  brand('pt-b3', 'TorqueLab', IMG.industrial, 'torquelab'),
-  brand('pt-b4', 'SparkKit', IMG.toolbox, 'sparkkit'),
-]
+function powerToolBrands(subSlug = null) {
+  return [
+    brand('pt-b1', 'ForgePro', IMG.workshop, 'forgepro', 'power-tools', subSlug),
+    brand('pt-b2', 'VoltEdge', IMG.bench, 'voltedge', 'power-tools', subSlug),
+    brand('pt-b3', 'TorqueLab', IMG.industrial, 'torquelab', 'power-tools', subSlug),
+    brand('pt-b4', 'SparkKit', IMG.toolbox, 'sparkkit', 'power-tools', subSlug),
+  ]
+}
 
 const powerToolsProducts = [
   product('pt-p1', '18V Brushless Cordless Drill Kit with 2 Batteries', IMG.drill, 4.7, 251, 4699, 7999),
@@ -164,19 +168,14 @@ export const categoryCatalog = {
         childSlug: 'cordless-drills',
         title: 'Cordless Drills',
         viewAllHref: '/category/power-tools/cordless-drills',
-        brands: forgeProBrands,
+        brands: powerToolBrands('cordless-drills'),
         products: cordlessDrillProducts.slice(0, 8),
       },
       {
         childSlug: 'angle-grinders',
         title: 'Angle Grinders',
         viewAllHref: '/products?category=angle-grinders',
-        brands: [
-          brand('ag-b1', 'ForgePro', IMG.grinder, 'forgepro'),
-          brand('ag-b2', 'VoltEdge', IMG.workshop, 'voltedge'),
-          brand('ag-b3', 'SparkKit', IMG.industrial, 'sparkkit'),
-          brand('ag-b4', 'TorqueLab', IMG.toolbox, 'torquelab'),
-        ],
+        brands: powerToolBrands('angle-grinders'),
         products: [
           product('ag-sp1', 'Heavy-Duty Angle Grinder 850W', IMG.grinder, 4.5, 128, 2499, 3999),
           product('ag-sp2', 'Slim Body Grinder 115mm', IMG.workshop, 4.4, 92, 1899, 2999),
@@ -192,7 +191,7 @@ export const categoryCatalog = {
         childSlug: 'impact-drivers',
         title: 'Impact Drivers',
         viewAllHref: '/products?category=impact-drivers',
-        brands: forgeProBrands,
+        brands: powerToolBrands('impact-drivers'),
         products: [
           product('id-sp1', 'Impact Driver Set 12V with Bits Case', IMG.impact, 4.8, 312, 3299, 5499),
           product('id-sp2', 'Brushless Impact 18V High Torque', IMG.drill, 4.7, 188, 4999, 7499),
@@ -253,26 +252,21 @@ export const categoryCatalog = {
             childSlug: 'brushless-drills',
             title: 'Brushless Drills',
             viewAllHref: '/products?category=brushless-drills',
-            brands: forgeProBrands,
+            brands: powerToolBrands('brushless-drills'),
             products: cordlessDrillProducts.slice(0, 8),
           },
           {
             childSlug: 'compact-cordless',
             title: 'Compact Cordless',
             viewAllHref: '/products?category=compact-cordless',
-            brands: [
-              brand('cc-b1', 'VoltEdge', IMG.bench, 'voltedge'),
-              brand('cc-b2', 'SparkKit', IMG.toolbox, 'sparkkit'),
-              brand('cc-b3', 'ForgePro', IMG.drill, 'forgepro'),
-              brand('cc-b4', 'TorqueLab', IMG.impact, 'torquelab'),
-            ],
+            brands: powerToolBrands('compact-cordless'),
             products: cordlessDrillProducts.slice(1, 9),
           },
           {
             childSlug: 'drill-combo-kits',
             title: 'Drill Combo Kits',
             viewAllHref: '/products?category=drill-combo-kits',
-            brands: forgeProBrands,
+            brands: powerToolBrands('drill-combo-kits'),
             products: [
               cordlessDrillProducts[3],
               cordlessDrillProducts[11],
