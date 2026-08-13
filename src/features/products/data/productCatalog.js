@@ -58,7 +58,7 @@ function createProduct(opts) {
     currentPrice,
     originalPrice,
     discountPercentage,
-    href: `/products?id=${id}`,
+    href: `/products/${id}`,
     categorySlug,
     subCategorySlug,
     brandSlug,
@@ -321,8 +321,92 @@ for (const product of allProducts) {
 
 const catalog = [...byId.values()]
 
+/** Map legacy homepage/category card ids to catalog ids. */
+const LEGACY_ID_ALIASES = {
+  'cd-p1': 'pt-21',
+  'cd-p2': 'pt-22',
+  'cd-p3': 'pt-23',
+  'cd-p4': 'pt-24',
+  'cd-p5': 'pt-25',
+  'cd-p6': 'pt-26',
+  'cd-p7': 'pt-27',
+  'cd-p8': 'pt-28',
+  'cd-p9': 'pt-29',
+  'cd-p10': 'pt-30',
+  'cd-p11': 'pt-21',
+  'cd-p12': 'pt-22',
+  'cd-p13': 'pt-23',
+  'cd-p14': 'pt-24',
+  'cd-p15': 'pt-25',
+  'cd-p16': 'pt-26',
+  'cd-p17': 'pt-27',
+  'cd-p18': 'pt-28',
+  'cd-p19': 'pt-29',
+  'cd-p20': 'pt-30',
+  'ag-sp1': 'pt-2',
+  'ag-sp2': 'pt-11',
+  'ag-sp3': 'pt-16',
+  'ag-sp4': 'pt-12',
+  'ag-sp5': 'pt-2',
+  'ag-sp6': 'pt-11',
+  'ag-sp7': 'pt-16',
+  'ag-sp8': 'pt-12',
+  'id-sp1': 'pt-4',
+  'id-sp2': 'pt-13',
+  'id-sp3': 'pt-10',
+  'id-sp4': 'pt-4',
+  'id-sp5': 'pt-13',
+  'id-sp6': 'pt-10',
+  'id-sp7': 'pt-14',
+  'id-sp8': 'pt-4',
+}
+
+/**
+ * Resolve homepage/category legacy ids to catalog ids.
+ * @param {string} id
+ */
+export function resolveProductId(id) {
+  if (!id) return id
+  if (byId.has(id)) return id
+
+  const alias = LEGACY_ID_ALIASES[id]
+  if (alias && byId.has(alias)) return alias
+
+  const normalized = id.replace(/^([a-z]+)-p(\d+)$/, '$1-$2')
+  if (byId.has(normalized)) return normalized
+
+  return id
+}
+
+/** @param {string} id */
+export function getProductDetailHref(id) {
+  return `/products/${resolveProductId(id)}`
+}
+
 export function getAllProducts() {
   return catalog
+}
+
+/**
+ * @param {string} id
+ */
+export function getProductById(id) {
+  return byId.get(resolveProductId(id)) ?? null
+}
+
+/**
+ * @param {ReturnType<typeof createProduct>} product
+ * @param {number} [limit]
+ */
+export function getRelatedProducts(product, limit = 8) {
+  return catalog
+    .filter(
+      (item) =>
+        item.id !== product.id &&
+        (item.categorySlug === product.categorySlug ||
+          item.subCategorySlug === product.subCategorySlug),
+    )
+    .slice(0, limit)
 }
 
 /**

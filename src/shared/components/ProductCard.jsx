@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom'
-import { FiShoppingCart, FiStar } from 'react-icons/fi'
-import { formatPrice } from '../utils/formatPrice'
+import { FiShoppingCart } from 'react-icons/fi'
+import { getProductDetailHref } from '../../features/products/data/productCatalog'
+import ProductPriceBlock from './ProductPriceBlock'
+import StarRating from './StarRating'
 
 const PLACEHOLDER =
   'data:image/svg+xml,' +
@@ -19,7 +21,6 @@ const PLACEHOLDER =
  *   currentPrice: number,
  *   originalPrice: number,
  *   discountPercentage: number,
- *   href?: string,
  * }} props
  */
 export default function ProductCard({
@@ -31,9 +32,8 @@ export default function ProductCard({
   currentPrice,
   originalPrice,
   discountPercentage,
-  href = '/products',
 }) {
-  const productHref = href.includes('?') ? href : `${href}?id=${id}`
+  const productHref = getProductDetailHref(id)
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-lg border border-border bg-surface transition duration-300 hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-md">
@@ -48,10 +48,8 @@ export default function ProductCard({
             event.currentTarget.src = PLACEHOLDER
           }}
         />
-        <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-md bg-surface/95 px-1.5 py-0.5 text-[11px] font-semibold text-success shadow-sm ring-1 ring-black/5">
-          <FiStar className="size-3 fill-success text-success" aria-hidden />
-          {rating.toFixed(1)}
-          <span className="font-normal text-ink-muted">({reviewCount})</span>
+        <span className="absolute left-2 top-2 rounded-md bg-surface/95 px-1.5 py-0.5 shadow-sm ring-1 ring-black/5">
+          <StarRating rating={rating} reviewCount={reviewCount} />
         </span>
       </Link>
 
@@ -62,16 +60,12 @@ export default function ProductCard({
           </h3>
         </Link>
 
-        <div className="mt-auto flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-          <span className="text-base font-bold text-ink">{formatPrice(currentPrice)}</span>
-          {originalPrice > currentPrice ? (
-            <span className="text-xs text-ink-muted line-through">
-              {formatPrice(originalPrice)}
-            </span>
-          ) : null}
-          {discountPercentage > 0 ? (
-            <span className="text-xs font-bold text-highlight-dark">{discountPercentage}% OFF</span>
-          ) : null}
+        <div className="mt-auto">
+          <ProductPriceBlock
+            currentPrice={currentPrice}
+            originalPrice={originalPrice}
+            discountPercentage={discountPercentage}
+          />
         </div>
 
         <div className="flex gap-2 pt-1">

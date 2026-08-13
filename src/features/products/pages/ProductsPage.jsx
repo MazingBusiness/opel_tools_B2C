@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import Breadcrumb from '../../../shared/components/Breadcrumb'
 import { useProductFilters } from '../hooks/useProductFilters'
 import { getSubCategoriesForParents, pruneSubsForCategories } from '../utils/categoryTaxonomy'
@@ -11,6 +12,9 @@ import ProductResultsGrid from '../components/ProductResultsGrid'
 import ProductPagination from '../components/ProductPagination'
 
 export default function ProductsPage() {
+  const [searchParams] = useSearchParams()
+  const legacyId = searchParams.get('id')
+
   const {
     filters,
     pagination,
@@ -37,8 +41,6 @@ export default function ProductsPage() {
   useEffect(() => {
     if (!drawerOpen) setDraftFilters(filters)
   }, [filters, drawerOpen])
-
-  const draftSubCategories = getSubCategoriesForParents(draftFilters.categories)
 
   const handleScalarChange = useCallback(
     (key, value) => setFilter(key, value),
@@ -70,6 +72,12 @@ export default function ProductsPage() {
     applyFilters(draftFilters)
     setDrawerOpen(false)
   }, [applyFilters, draftFilters])
+
+  if (legacyId) {
+    return <Navigate to={`/products/${legacyId}`} replace />
+  }
+
+  const draftSubCategories = getSubCategoriesForParents(draftFilters.categories)
 
   const panelProps = {
     filters,
