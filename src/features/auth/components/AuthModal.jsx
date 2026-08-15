@@ -3,6 +3,7 @@ import { FiX } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import { useUiStore } from '../../../app/store/useUiStore'
 import { useAuthStore } from '../../../app/store/useAuthStore'
+import { useProfileStore } from '../../../app/store/useProfileStore'
 import { DEMO_OTP, parseIdentifier } from '../utils/identifier'
 import AuthIdentifierStep from './AuthIdentifierStep'
 import AuthOtpStep from './AuthOtpStep'
@@ -13,6 +14,7 @@ export default function AuthModal() {
   const isOpen = useUiStore((s) => s.isAuthModalOpen)
   const closeAuthModal = useUiStore((s) => s.closeAuthModal)
   const login = useAuthStore((s) => s.login)
+  const ensureProfile = useProfileStore((s) => s.ensureProfile)
 
   const [step, setStep] = useState('identifier')
   const [identifierInput, setIdentifierInput] = useState('')
@@ -75,21 +77,25 @@ export default function AuthModal() {
       setError('Invalid OTP. Use 123456 for this demo.')
       return
     }
-    login({
+    const user = {
       id: `otp-${resolvedIdentifier}`,
       identifier: resolvedIdentifier,
       method: 'otp',
-    })
+    }
+    login(user)
+    ensureProfile(user)
     toast.success('Logged in successfully')
     closeAuthModal()
   }
 
   function handleGoogle() {
-    login({
+    const user = {
       id: 'google-demo',
       identifier: 'google.user@opel.demo',
       method: 'google',
-    })
+    }
+    login(user)
+    ensureProfile(user)
     toast.success('Logged in with Google')
     closeAuthModal()
   }

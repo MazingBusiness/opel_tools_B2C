@@ -1,9 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { FiMoreVertical, FiShoppingCart, FiTruck, FiUser, FiLogOut } from 'react-icons/fi'
+import { Link, useNavigate } from 'react-router-dom'
+import {
+  FiLogOut,
+  FiMapPin,
+  FiMoreVertical,
+  FiPackage,
+  FiShoppingCart,
+  FiTruck,
+  FiUser,
+} from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import { useUiStore } from '../store/useUiStore'
 import { useAuthStore } from '../store/useAuthStore'
+import { useProfileStore } from '../store/useProfileStore'
+import ProfileAvatar from '../../features/user/components/ProfileAvatar'
 
 function truncateIdentifier(identifier) {
   if (!identifier) return 'Account'
@@ -11,15 +21,33 @@ function truncateIdentifier(identifier) {
   return `${identifier.slice(0, 12)}…`
 }
 
+function displayLabel(profile, identifier) {
+  const name = profile?.name?.trim()
+  if (name && name !== 'OPEL Customer') {
+    return name.split(/\s+/)[0]
+  }
+  return truncateIdentifier(identifier)
+}
+
 export default function HeaderActions() {
   const [moreOpen, setMoreOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
   const menuRef = useRef(null)
   const accountRef = useRef(null)
+  const navigate = useNavigate()
 
   const openAuthModal = useUiStore((s) => s.openAuthModal)
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
+  const ensureProfile = useProfileStore((s) => s.ensureProfile)
+  const hasHydrated = useProfileStore((s) => s.hasHydrated)
+  const profile = useProfileStore((s) =>
+    user ? s.byUserId[user.id] ?? null : null,
+  )
+
+  useEffect(() => {
+    if (hasHydrated && user) ensureProfile(user)
+  }, [hasHydrated, user, ensureProfile])
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -38,6 +66,7 @@ export default function HeaderActions() {
     logout()
     setAccountOpen(false)
     toast.success('Logged out')
+    navigate('/')
   }
 
   return (
@@ -51,19 +80,55 @@ export default function HeaderActions() {
             aria-expanded={accountOpen}
             aria-haspopup="menu"
           >
-            <FiUser className="size-5" />
+            {profile?.name ? (
+              <ProfileAvatar
+                name={profile.name}
+                avatarUrl={profile.avatarUrl}
+                size="xs"
+              />
+            ) : (
+              <FiUser className="size-5" />
+            )}
             <span className="hidden max-w-24 truncate text-[11px] font-medium lg:inline">
-              {truncateIdentifier(user.identifier)}
+              {displayLabel(profile, user.identifier)}
             </span>
           </button>
           {accountOpen ? (
             <div
               role="menu"
-              className="absolute right-0 z-50 mt-1 min-w-44 rounded-md border border-border bg-surface py-1 shadow-md"
+              className="absolute right-0 z-50 mt-1 min-w-48 rounded-md border border-border bg-surface py-1 shadow-md"
             >
               <p className="truncate border-b border-border px-3 py-2 text-xs text-ink-muted">
+                {profile?.name ? `${profile.name} · ` : ''}
                 {user.identifier}
               </p>
+              <Link
+                to="/profile"
+                role="menuitem"
+                onClick={() => setAccountOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-surface-muted"
+              >
+                <FiUser className="size-4" />
+                My Account
+              </Link>
+              <Link
+                to="/profile/orders"
+                role="menuitem"
+                onClick={() => setAccountOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-surface-muted"
+              >
+                <FiPackage className="size-4" />
+                My Orders
+              </Link>
+              <Link
+                to="/profile/addresses"
+                role="menuitem"
+                onClick={() => setAccountOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-surface-muted"
+              >
+                <FiMapPin className="size-4" />
+                Addresses
+              </Link>
               <button
                 type="button"
                 role="menuitem"
@@ -118,6 +183,16 @@ export default function HeaderActions() {
         </button>
         {moreOpen ? (
           <div className="absolute right-0 z-50 mt-1 min-w-40 rounded-md border border-border bg-surface py-1 shadow-md">
+            {user ? (
+              <Link
+                to="/profile"
+                onClick={() => setMoreOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-surface-muted"
+              >
+                <FiUser className="size-4" />
+                My Account
+              </Link>
+            ) : null}
             <Link
               to="/orders"
               onClick={() => setMoreOpen(false)}
