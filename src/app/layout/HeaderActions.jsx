@@ -13,6 +13,8 @@ import toast from 'react-hot-toast'
 import { useUiStore } from '../store/useUiStore'
 import { useAuthStore } from '../store/useAuthStore'
 import { useProfileStore } from '../store/useProfileStore'
+import { useCartStore } from '../store/useCartStore'
+import { getCartTotals } from '../../features/cart/utils/cartTotals'
 import ProfileAvatar from '../../features/user/components/ProfileAvatar'
 
 function truncateIdentifier(identifier) {
@@ -37,6 +39,9 @@ export default function HeaderActions() {
   const navigate = useNavigate()
 
   const openAuthModal = useUiStore((s) => s.openAuthModal)
+  const openCart = useUiStore((s) => s.openCart)
+  const cartItems = useCartStore((s) => s.items)
+  const cartCount = getCartTotals(cartItems).itemCount
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const ensureProfile = useProfileStore((s) => s.ensureProfile)
@@ -160,16 +165,20 @@ export default function HeaderActions() {
         <span className="hidden text-[11px] font-medium lg:inline">Track Order</span>
       </Link>
 
-      <Link
-        to="/cart"
+      <button
+        type="button"
+        onClick={openCart}
         className="relative flex flex-col items-center gap-0.5 rounded-md px-2 py-1 text-ink transition hover:text-brand"
+        aria-label={cartCount > 0 ? `Cart, ${cartCount} items` : 'Cart'}
       >
         <FiShoppingCart className="size-5" />
-        <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-ink-inverse">
-          0
-        </span>
+        {cartCount > 0 ? (
+          <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-ink-inverse">
+            {cartCount > 99 ? '99+' : cartCount}
+          </span>
+        ) : null}
         <span className="hidden text-[11px] font-medium lg:inline">Cart</span>
-      </Link>
+      </button>
 
       <div className="relative md:hidden" ref={menuRef}>
         <button

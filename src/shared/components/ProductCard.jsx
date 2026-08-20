@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { FiShoppingCart } from 'react-icons/fi'
 import { getProductDetailHref } from '../../features/products/data/productCatalog'
+import { useCart } from '../../features/cart/hooks/useCart'
 import ProductPriceBlock from './ProductPriceBlock'
 import StarRating from './StarRating'
 
@@ -34,6 +35,7 @@ export default function ProductCard({
   discountPercentage,
 }) {
   const productHref = getProductDetailHref(id)
+  const { addToCart } = useCart()
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-lg border border-border bg-surface transition duration-300 hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-md">
@@ -71,6 +73,22 @@ export default function ProductCard({
         <div className="flex gap-2 pt-1">
           <button
             type="button"
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              addToCart(
+                {
+                  id,
+                  title,
+                  imageUrl,
+                  href: productHref,
+                  currentPrice,
+                  originalPrice,
+                  discountPercentage,
+                },
+                1,
+              )
+            }}
             className="flex size-9 shrink-0 items-center justify-center rounded-md border-2 border-brand text-brand transition hover:bg-brand hover:text-ink-inverse"
             aria-label="Add to cart"
           >

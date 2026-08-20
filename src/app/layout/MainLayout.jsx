@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom'
 import Header from './Header'
 import Footer from './Footer'
 import AuthModal from '../../features/auth/components/AuthModal'
+import CartDrawer from '../../features/cart/components/CartDrawer'
 
 export default function MainLayout() {
   return (
@@ -12,6 +13,7 @@ export default function MainLayout() {
       </main>
       <Footer />
       <AuthModal />
+      <CartDrawer />
     </div>
   )
 }

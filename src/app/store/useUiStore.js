@@ -8,4 +8,8 @@ export const useUiStore = create((set) => ({
   isAuthModalOpen: false,
   openAuthModal: () => set({ isAuthModalOpen: true }),
   closeAuthModal: () => set({ isAuthModalOpen: false }),
+
+  isCartOpen: false,
+  openCart: () => set({ isCartOpen: true }),
+  closeCart: () => set({ isCartOpen: false }),
 }))

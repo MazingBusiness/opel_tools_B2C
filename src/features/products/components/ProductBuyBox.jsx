@@ -1,23 +1,26 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import toast from 'react-hot-toast'
+import { Link, useNavigate } from 'react-router-dom'
 import { FiRefreshCw, FiShield, FiShoppingCart, FiTruck } from 'react-icons/fi'
 import ProductPriceBlock from '../../../shared/components/ProductPriceBlock'
 import QuantityStepper from '../../../shared/components/QuantityStepper'
 import StarRating from '../../../shared/components/StarRating'
+import { useCart } from '../../cart/hooks/useCart'
 
 /**
  * @param {{ product: object }} props
  */
 export default function ProductBuyBox({ product }) {
   const [quantity, setQuantity] = useState(1)
+  const navigate = useNavigate()
+  const { addToCart } = useCart()
 
   function handleAddToCart() {
-    toast.success(`Added ${quantity} × ${product.title} to cart`)
+    addToCart(product, quantity)
   }
 
   function handleBuyNow() {
-    toast.success('Proceeding to checkout (coming soon)')
+    addToCart(product, quantity, { openDrawer: false })
+    navigate('/cart')
   }
 
   return (
