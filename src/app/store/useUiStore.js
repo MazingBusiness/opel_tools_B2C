@@ -10,6 +10,10 @@ export const useUiStore = create((set) => ({
   closeAuthModal: () => set({ isAuthModalOpen: false }),
 
   isCartOpen: false,
-  openCart: () => set({ isCartOpen: true }),
+  openCart: () => set({ isCartOpen: true, isWishlistOpen: false }),
   closeCart: () => set({ isCartOpen: false }),
+
+  isWishlistOpen: false,
+  openWishlist: () => set({ isWishlistOpen: true, isCartOpen: false }),
+  closeWishlist: () => set({ isWishlistOpen: false }),
 }))

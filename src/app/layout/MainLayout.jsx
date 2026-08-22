@@ -3,6 +3,7 @@ import Header from './Header'
 import Footer from './Footer'
 import AuthModal from '../../features/auth/components/AuthModal'
 import CartDrawer from '../../features/cart/components/CartDrawer'
+import WishlistDrawer from '../../features/wishlist/components/WishlistDrawer'
 
 export default function MainLayout() {
   return (
@@ -14,6 +15,7 @@ export default function MainLayout() {
       <Footer />
       <AuthModal />
       <CartDrawer />
+      <WishlistDrawer />
     </div>
   )
 }

@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
-import { FiShoppingCart } from 'react-icons/fi'
+import { FiHeart, FiShoppingCart } from 'react-icons/fi'
 import { getProductDetailHref } from '../../features/products/data/productCatalog'
 import { useCart } from '../../features/cart/hooks/useCart'
+import { useWishlist } from '../../features/wishlist/hooks/useWishlist'
 import ProductPriceBlock from './ProductPriceBlock'
 import StarRating from './StarRating'
 
@@ -36,24 +37,53 @@ export default function ProductCard({
 }) {
   const productHref = getProductDetailHref(id)
   const { addToCart } = useCart()
+  const { isWishlisted, toggleWishlist } = useWishlist()
+  const wishlisted = isWishlisted(id)
+
+  const product = {
+    id,
+    title,
+    imageUrl,
+    href: productHref,
+    currentPrice,
+    originalPrice,
+    discountPercentage,
+  }
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-lg border border-border bg-surface transition duration-300 hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-md">
-      <Link to={productHref} className="relative block aspect-square overflow-hidden bg-surface-muted">
-        <img
-          src={imageUrl}
-          alt=""
-          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-          loading="lazy"
-          onError={(event) => {
-            event.currentTarget.onerror = null
-            event.currentTarget.src = PLACEHOLDER
+      <div className="relative">
+        <Link to={productHref} className="relative block aspect-square overflow-hidden bg-surface-muted">
+          <img
+            src={imageUrl}
+            alt=""
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+            loading="lazy"
+            onError={(event) => {
+              event.currentTarget.onerror = null
+              event.currentTarget.src = PLACEHOLDER
+            }}
+          />
+          <span className="absolute left-2 top-2 rounded-md bg-surface/95 px-1.5 py-0.5 shadow-sm ring-1 ring-black/5">
+            <StarRating rating={rating} reviewCount={reviewCount} />
+          </span>
+        </Link>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            toggleWishlist(product)
           }}
-        />
-        <span className="absolute left-2 top-2 rounded-md bg-surface/95 px-1.5 py-0.5 shadow-sm ring-1 ring-black/5">
-          <StarRating rating={rating} reviewCount={reviewCount} />
-        </span>
-      </Link>
+          className={`absolute right-2 top-2 z-10 flex size-9 items-center justify-center rounded-md border border-border bg-surface/95 shadow-sm transition hover:border-brand hover:text-brand ${
+            wishlisted ? 'text-brand' : 'text-ink-muted'
+          }`}
+          aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+          aria-pressed={wishlisted}
+        >
+          <FiHeart className={`size-4 ${wishlisted ? 'fill-current' : ''}`} />
+        </button>
+      </div>
 
       <div className="flex flex-1 flex-col gap-2 p-3">
         <Link to={productHref} className="block">
@@ -76,18 +106,7 @@ export default function ProductCard({
             onClick={(event) => {
               event.preventDefault()
               event.stopPropagation()
-              addToCart(
-                {
-                  id,
-                  title,
-                  imageUrl,
-                  href: productHref,
-                  currentPrice,
-                  originalPrice,
-                  discountPercentage,
-                },
-                1,
-              )
+              addToCart(product, 1)
             }}
             className="flex size-9 shrink-0 items-center justify-center rounded-md border-2 border-brand text-brand transition hover:bg-brand hover:text-ink-inverse"
             aria-label="Add to cart"

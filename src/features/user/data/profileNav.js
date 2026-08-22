@@ -1,5 +1,6 @@
 import {
   FiGrid,
+  FiHeart,
   FiMapPin,
   FiPackage,
   FiShield,
@@ -11,6 +12,7 @@ export const PROFILE_NAV = [
   { to: '/profile/details', label: 'Profile details', end: false, icon: FiUser },
   { to: '/profile/addresses', label: 'Addresses', end: false, icon: FiMapPin },
   { to: '/profile/orders', label: 'My orders', end: false, icon: FiPackage },
+  { to: '/wishlist', label: 'Wishlist', end: false, icon: FiHeart },
   { to: '/profile/security', label: 'Security', end: false, icon: FiShield },
 ]
 

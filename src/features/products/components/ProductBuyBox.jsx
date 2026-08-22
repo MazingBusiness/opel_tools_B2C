@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { FiRefreshCw, FiShield, FiShoppingCart, FiTruck } from 'react-icons/fi'
+import { FiHeart, FiRefreshCw, FiShield, FiShoppingCart, FiTruck } from 'react-icons/fi'
 import ProductPriceBlock from '../../../shared/components/ProductPriceBlock'
 import QuantityStepper from '../../../shared/components/QuantityStepper'
 import StarRating from '../../../shared/components/StarRating'
 import { useCart } from '../../cart/hooks/useCart'
+import { useWishlist } from '../../wishlist/hooks/useWishlist'
 
 /**
  * @param {{ product: object }} props
@@ -13,6 +14,8 @@ export default function ProductBuyBox({ product }) {
   const [quantity, setQuantity] = useState(1)
   const navigate = useNavigate()
   const { addToCart } = useCart()
+  const { isWishlisted, toggleWishlist } = useWishlist()
+  const wishlisted = isWishlisted(product.id)
 
   function handleAddToCart() {
     addToCart(product, quantity)
@@ -21,6 +24,10 @@ export default function ProductBuyBox({ product }) {
   function handleBuyNow() {
     addToCart(product, quantity, { openDrawer: false })
     navigate('/cart')
+  }
+
+  function handleWishlist() {
+    toggleWishlist(product)
   }
 
   return (
@@ -82,6 +89,18 @@ export default function ProductBuyBox({ product }) {
           Buy now
         </button>
       </div>
+
+      <button
+        type="button"
+        onClick={handleWishlist}
+        className={`mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border border-border py-2.5 text-sm font-semibold transition hover:border-brand hover:text-brand ${
+          wishlisted ? 'border-brand bg-brand/5 text-brand' : 'text-ink-muted'
+        }`}
+        aria-pressed={wishlisted}
+      >
+        <FiHeart className={`size-4 ${wishlisted ? 'fill-current' : ''}`} aria-hidden />
+        {wishlisted ? 'Saved to wishlist' : 'Save to wishlist'}
+      </button>
 
       <ul className="mt-6 space-y-3 border-t border-border pt-5">
         <li className="flex items-center gap-3 text-sm text-ink-muted">

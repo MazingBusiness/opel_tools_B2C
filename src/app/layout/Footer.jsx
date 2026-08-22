@@ -48,6 +48,7 @@ const linkColumns = [
     title: 'Help',
     links: [
       { label: 'My Account', to: '/profile' },
+      { label: 'Wishlist', to: '/wishlist' },
       { label: 'Track Order', to: '/orders' },
       { label: 'Shipping Info', to: '/' },
       { label: 'Returns', to: '/' },

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
+  FiHeart,
   FiLogOut,
   FiMapPin,
   FiMoreVertical,
@@ -14,6 +15,7 @@ import { useUiStore } from '../store/useUiStore'
 import { useAuthStore } from '../store/useAuthStore'
 import { useProfileStore } from '../store/useProfileStore'
 import { useCartStore } from '../store/useCartStore'
+import { useWishlistStore } from '../store/useWishlistStore'
 import { getCartTotals } from '../../features/cart/utils/cartTotals'
 import ProfileAvatar from '../../features/user/components/ProfileAvatar'
 
@@ -40,8 +42,10 @@ export default function HeaderActions() {
 
   const openAuthModal = useUiStore((s) => s.openAuthModal)
   const openCart = useUiStore((s) => s.openCart)
+  const openWishlist = useUiStore((s) => s.openWishlist)
   const cartItems = useCartStore((s) => s.items)
   const cartCount = getCartTotals(cartItems).itemCount
+  const wishlistCount = useWishlistStore((s) => s.items.length)
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const ensureProfile = useProfileStore((s) => s.ensureProfile)
@@ -157,6 +161,23 @@ export default function HeaderActions() {
         </button>
       )}
 
+      <button
+        type="button"
+        onClick={openWishlist}
+        className="relative flex flex-col items-center gap-0.5 rounded-md px-2 py-1 text-ink transition hover:text-brand"
+        aria-label={
+          wishlistCount > 0 ? `Wishlist, ${wishlistCount} items` : 'Wishlist'
+        }
+      >
+        <FiHeart className="size-5" />
+        {wishlistCount > 0 ? (
+          <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-ink-inverse">
+            {wishlistCount > 99 ? '99+' : wishlistCount}
+          </span>
+        ) : null}
+        <span className="hidden text-[11px] font-medium lg:inline">Wishlist</span>
+      </button>
+
       <Link
         to="/orders"
         className="hidden flex-col items-center gap-0.5 rounded-md px-2 py-1 text-ink transition hover:text-brand md:flex"
@@ -202,6 +223,22 @@ export default function HeaderActions() {
                 My Account
               </Link>
             ) : null}
+            <button
+              type="button"
+              onClick={() => {
+                setMoreOpen(false)
+                openWishlist()
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-surface-muted"
+            >
+              <FiHeart className="size-4" />
+              Wishlist
+              {wishlistCount > 0 ? (
+                <span className="ml-auto text-xs font-semibold text-brand">
+                  {wishlistCount > 99 ? '99+' : wishlistCount}
+                </span>
+              ) : null}
+            </button>
             <Link
               to="/orders"
               onClick={() => setMoreOpen(false)}
