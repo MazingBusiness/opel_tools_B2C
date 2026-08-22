@@ -41,7 +41,7 @@ const linkColumns = [
     links: [
       { label: 'About Us', to: '/about' },
       { label: 'Contact', to: '/contact' },
-      { label: 'Careers', to: '/' },
+      { label: 'Careers', to: '/careers' },
     ],
   },
   {
@@ -50,8 +50,8 @@ const linkColumns = [
       { label: 'My Account', to: '/profile' },
       { label: 'Wishlist', to: '/wishlist' },
       { label: 'Track Order', to: '/orders' },
-      { label: 'Shipping Info', to: '/' },
-      { label: 'Returns', to: '/' },
+      { label: 'Shipping Info', to: '/shipping' },
+      { label: 'Returns', to: '/returns' },
     ],
   },
   {
@@ -65,9 +65,9 @@ const linkColumns = [
   {
     title: 'Policies',
     links: [
-      { label: 'Privacy Policy', to: '/' },
-      { label: 'Terms of Use', to: '/' },
-      { label: 'Warranty', to: '/' },
+      { label: 'Privacy Policy', to: '/privacy' },
+      { label: 'Terms of Use', to: '/terms' },
+      { label: 'Warranty', to: '/warranty' },
     ],
   },
 ]
@@ -164,15 +164,15 @@ export default function Footer() {
       <div className="bg-surface-muted">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 text-xs text-ink-muted sm:flex-row sm:items-center sm:justify-between">
           <nav className="flex flex-wrap gap-x-3 gap-y-1">
-            <Link to="/" className="hover:text-brand">
+            <Link to="/terms" className="hover:text-brand">
               Terms of Use
             </Link>
             <span aria-hidden>|</span>
-            <Link to="/" className="hover:text-brand">
+            <Link to="/privacy" className="hover:text-brand">
               Privacy Policy
             </Link>
             <span aria-hidden>|</span>
-            <Link to="/" className="hover:text-brand">
+            <Link to="/warranty" className="hover:text-brand">
               Warranty
             </Link>
           </nav>

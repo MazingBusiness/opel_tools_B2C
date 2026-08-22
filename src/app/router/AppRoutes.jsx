@@ -2,8 +2,14 @@ import { Routes, Route } from 'react-router-dom'
 import MainLayout from '../layout/MainLayout'
 import RequireAuth from './RequireAuth'
 import HomePage from '../../features/home/pages/HomePage'
-import AboutPage from '../../features/home/pages/AboutPage'
-import ContactPage from '../../features/home/pages/ContactPage'
+import AboutPage from '../../features/content/pages/AboutPage'
+import ContactPage from '../../features/content/pages/ContactPage'
+import CareersPage from '../../features/content/pages/CareersPage'
+import ShippingPage from '../../features/content/pages/ShippingPage'
+import ReturnsPage from '../../features/content/pages/ReturnsPage'
+import PrivacyPage from '../../features/content/pages/PrivacyPage'
+import TermsPage from '../../features/content/pages/TermsPage'
+import WarrantyPage from '../../features/content/pages/WarrantyPage'
 import LoginPage from '../../features/auth/pages/LoginPage'
 import CartPage from '../../features/cart/pages/CartPage'
 import WishlistPage from '../../features/wishlist/pages/WishlistPage'
@@ -26,6 +32,12 @@ export default function AppRoutes() {
         <Route path="/" element={<HomePage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/careers" element={<CareersPage />} />
+        <Route path="/shipping" element={<ShippingPage />} />
+        <Route path="/returns" element={<ReturnsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/warranty" element={<WarrantyPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/wishlist" element={<WishlistPage />} />
