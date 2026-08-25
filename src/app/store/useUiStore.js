@@ -16,4 +16,8 @@ export const useUiStore = create((set) => ({
   isWishlistOpen: false,
   openWishlist: () => set({ isWishlistOpen: true, isCartOpen: false }),
   closeWishlist: () => set({ isWishlistOpen: false }),
+
+  isLocationDialogOpen: false,
+  openLocationDialog: () => set({ isLocationDialogOpen: true }),
+  closeLocationDialog: () => set({ isLocationDialogOpen: false }),
 }))

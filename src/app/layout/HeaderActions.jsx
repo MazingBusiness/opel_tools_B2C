@@ -4,7 +4,6 @@ import {
   FiHeart,
   FiLogOut,
   FiMapPin,
-  FiMoreVertical,
   FiPackage,
   FiShoppingCart,
   FiTruck,
@@ -34,9 +33,7 @@ function displayLabel(profile, identifier) {
 }
 
 export default function HeaderActions() {
-  const [moreOpen, setMoreOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
-  const menuRef = useRef(null)
   const accountRef = useRef(null)
   const navigate = useNavigate()
 
@@ -60,9 +57,6 @@ export default function HeaderActions() {
 
   useEffect(() => {
     function handleClickOutside(event) {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setMoreOpen(false)
-      }
       if (accountRef.current && !accountRef.current.contains(event.target)) {
         setAccountOpen(false)
       }
@@ -180,7 +174,7 @@ export default function HeaderActions() {
 
       <Link
         to="/orders"
-        className="hidden flex-col items-center gap-0.5 rounded-md px-2 py-1 text-ink transition hover:text-brand md:flex"
+        className="flex flex-col items-center gap-0.5 rounded-md px-2 py-1 text-ink transition hover:text-brand"
       >
         <FiTruck className="size-5" />
         <span className="hidden text-[11px] font-medium lg:inline">Track Order</span>
@@ -199,64 +193,6 @@ export default function HeaderActions() {
           </span>
         ) : null}
         <span className="hidden text-[11px] font-medium lg:inline">Cart</span>
-      </button>
-
-      <div className="relative md:hidden" ref={menuRef}>
-        <button
-          type="button"
-          onClick={() => setMoreOpen((open) => !open)}
-          className="rounded-md p-2 text-ink transition hover:bg-surface-muted hover:text-brand"
-          aria-expanded={moreOpen}
-          aria-label="More options"
-        >
-          <FiMoreVertical className="size-5" />
-        </button>
-        {moreOpen ? (
-          <div className="absolute right-0 z-50 mt-1 min-w-40 rounded-md border border-border bg-surface py-1 shadow-md">
-            {user ? (
-              <Link
-                to="/profile"
-                onClick={() => setMoreOpen(false)}
-                className="flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-surface-muted"
-              >
-                <FiUser className="size-4" />
-                My Account
-              </Link>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => {
-                setMoreOpen(false)
-                openWishlist()
-              }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-surface-muted"
-            >
-              <FiHeart className="size-4" />
-              Wishlist
-              {wishlistCount > 0 ? (
-                <span className="ml-auto text-xs font-semibold text-brand">
-                  {wishlistCount > 99 ? '99+' : wishlistCount}
-                </span>
-              ) : null}
-            </button>
-            <Link
-              to="/orders"
-              onClick={() => setMoreOpen(false)}
-              className="flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-surface-muted"
-            >
-              <FiTruck className="size-4" />
-              Track Order
-            </Link>
-          </div>
-        ) : null}
-      </div>
-
-      <button
-        type="button"
-        className="hidden rounded-md p-2 text-ink transition hover:bg-surface-muted hover:text-brand md:inline-flex"
-        aria-label="More options"
-      >
-        <FiMoreVertical className="size-5" />
       </button>
     </div>
   )

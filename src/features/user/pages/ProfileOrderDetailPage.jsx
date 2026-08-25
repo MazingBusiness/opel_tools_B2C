@@ -5,6 +5,7 @@ import { formatPrice } from '../../../shared/utils/formatPrice'
 import { orderItemsTotal } from '../data/mockOrders'
 import { OrderStatusBadge } from '../components/OrderCard'
 import { useCurrentProfile } from '../hooks/useCurrentProfile'
+import OrderTimeline from '../components/OrderTimeline'
 
 export default function ProfileOrderDetailPage() {
   const { orderId } = useParams()
@@ -58,7 +59,7 @@ export default function ProfileOrderDetailPage() {
           <OrderStatusBadge status={order.status} />
           {order.status === 'shipped' || order.status === 'processing' ? (
             <Link
-              to="/orders"
+              to={`/orders/${order.id}`}
               className="rounded-md bg-highlight px-3 py-1.5 text-xs font-bold text-cta-foreground transition hover:bg-highlight-dark"
             >
               Track order
@@ -69,40 +70,9 @@ export default function ProfileOrderDetailPage() {
 
       <section className="rounded-lg border border-border bg-surface p-4 sm:p-5">
         <h3 className="text-sm font-bold text-ink">Status</h3>
-        <ol className="mt-4 space-y-0">
-          {order.timeline.map((step, index) => (
-            <li key={step.key} className="flex gap-3">
-              <div className="flex flex-col items-center">
-                <span
-                  className={`size-3 shrink-0 rounded-full ${
-                    step.done ? 'bg-brand' : 'border-2 border-border bg-surface'
-                  } ${step.current ? 'ring-4 ring-brand/20' : ''}`}
-                />
-                {index < order.timeline.length - 1 ? (
-                  <span
-                    className={`w-px flex-1 min-h-8 ${
-                      step.done && order.timeline[index + 1].done
-                        ? 'bg-brand'
-                        : 'bg-border'
-                    }`}
-                  />
-                ) : null}
-              </div>
-              <div className="pb-4">
-                <p
-                  className={`text-sm font-semibold ${
-                    step.done ? 'text-ink' : 'text-ink-muted'
-                  }`}
-                >
-                  {step.label}
-                </p>
-                {step.at ? (
-                  <p className="text-xs text-ink-muted">{step.at}</p>
-                ) : null}
-              </div>
-            </li>
-          ))}
-        </ol>
+        <div className="mt-4">
+          <OrderTimeline timeline={order.timeline} />
+        </div>
       </section>
 
       <section className="rounded-lg border border-border bg-surface p-4 sm:p-5">

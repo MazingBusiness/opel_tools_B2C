@@ -66,7 +66,7 @@ export default function OrderCard({ order }) {
           </Link>
           {order.status === 'shipped' || order.status === 'processing' ? (
             <Link
-              to="/orders"
+              to={`/orders/${order.id}`}
               className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold text-ink transition hover:border-brand hover:text-brand"
             >
               Track

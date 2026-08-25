@@ -4,6 +4,7 @@ import Footer from './Footer'
 import AuthModal from '../../features/auth/components/AuthModal'
 import CartDrawer from '../../features/cart/components/CartDrawer'
 import WishlistDrawer from '../../features/wishlist/components/WishlistDrawer'
+import LocationDialog from '../../features/location/components/LocationDialog'
 
 export default function MainLayout() {
   return (
@@ -16,6 +17,7 @@ export default function MainLayout() {
       <AuthModal />
       <CartDrawer />
       <WishlistDrawer />
+      <LocationDialog />
     </div>
   )
 }

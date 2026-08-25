@@ -45,6 +45,7 @@ export default function AppRoutes() {
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/products/:productId" element={<ProductDetailPage />} />
         <Route path="/orders" element={<OrdersPage />} />
+        <Route path="/orders/:orderId" element={<OrdersPage />} />
         <Route path="/category/:categorySlug" element={<CategoryBrowsePage />} />
         <Route
           path="/category/:categorySlug/:subSlug"

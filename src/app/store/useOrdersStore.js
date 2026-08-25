@@ -48,6 +48,22 @@ export const useOrdersStore = create(
       },
 
       /**
+       * Public lookup: scans all users' orders, then mock seed data.
+       * @param {string} orderId
+       * @returns {Order | null}
+       */
+      findOrderById: (orderId) => {
+        const normalized = orderId?.trim()
+        if (!normalized) return null
+        const lower = normalized.toLowerCase()
+        for (const orders of Object.values(get().byUserId)) {
+          const match = orders.find((order) => order.id.toLowerCase() === lower)
+          if (match) return match
+        }
+        return mockOrders.find((order) => order.id.toLowerCase() === lower) ?? null
+      },
+
+      /**
        * @param {string} userId
        * @param {Order} order
        */
