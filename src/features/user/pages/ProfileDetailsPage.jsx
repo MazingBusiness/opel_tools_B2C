@@ -164,25 +164,27 @@ export default function ProfileDetailsPage() {
         </label>
       </div>
 
-      <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-ink-muted">
-        Login method
-      </p>
-      <p className="mt-1 inline-flex rounded-md border border-brand/30 bg-brand/5 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-brand">
-        {user?.method === 'google' ? 'Google' : 'OTP'}
-      </p>
+      <div className="mt-6 border-t border-border pt-5">
+        <p className={LABEL_CLASS}>Login method</p>
+        <span className="mt-1.5 inline-flex rounded-md border border-brand/30 bg-brand/5 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-brand">
+          {user?.method === 'google' ? 'Google' : 'OTP'}
+        </span>
 
-      {error ? (
-        <p className="mt-3 text-sm font-medium text-red-600" role="alert">
-          {error}
-        </p>
-      ) : null}
+        {error ? (
+          <p className="mt-3 text-sm font-medium text-red-600" role="alert">
+            {error}
+          </p>
+        ) : null}
 
-      <button
-        type="submit"
-        className="mt-5 rounded-md bg-highlight px-5 py-2.5 text-sm font-bold text-cta-foreground transition hover:bg-highlight-dark"
-      >
-        Save changes
-      </button>
+        <div className="mt-4 flex justify-end">
+          <button
+            type="submit"
+            className="w-full rounded-md bg-highlight px-8 py-2.5 text-sm font-bold text-cta-foreground transition hover:bg-highlight-dark sm:w-auto sm:min-w-[11rem]"
+          >
+            Save changes
+          </button>
+        </div>
+      </div>
     </form>
   )
 }

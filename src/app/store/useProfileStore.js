@@ -72,8 +72,17 @@ export const useProfileStore = create(
        */
       addAddress: (userId, address) =>
         set((state) => {
-          const current = state.byUserId[userId]
-          if (!current) return state
+          let current = state.byUserId[userId]
+          if (!current) {
+            current = {
+              name: address.name || 'OPEL Customer',
+              email: '',
+              phone: address.phone || '',
+              avatarUrl: '',
+              passwordSet: false,
+              addresses: [],
+            }
+          }
           const next = {
             ...address,
             id: newAddressId(),

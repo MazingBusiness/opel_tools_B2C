@@ -1,5 +1,5 @@
 import { useEffect, useId } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { FiX } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import { useUiStore } from '../../../app/store/useUiStore'
@@ -11,6 +11,7 @@ import { formatPrice } from '../../../shared/utils/formatPrice'
 export default function CartDrawer() {
   const isOpen = useUiStore((s) => s.isCartOpen)
   const closeCart = useUiStore((s) => s.closeCart)
+  const navigate = useNavigate()
   const { items, totals, setQty, removeItem } = useCart()
   const titleId = useId()
 
@@ -110,7 +111,7 @@ export default function CartDrawer() {
                 type="button"
                 onClick={() => {
                   closeCart()
-                  toast.success('Checkout coming soon')
+                  navigate('/checkout')
                 }}
                 className="rounded-md bg-highlight py-2.5 text-sm font-bold text-cta-foreground transition hover:bg-highlight-dark"
               >

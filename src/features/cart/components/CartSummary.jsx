@@ -1,5 +1,4 @@
-import { Link } from 'react-router-dom'
-import toast from 'react-hot-toast'
+import { Link, useNavigate } from 'react-router-dom'
 import { formatPrice } from '../../../shared/utils/formatPrice'
 import { FREE_SHIPPING_THRESHOLD } from '../utils/cartTotals'
 
@@ -8,15 +7,23 @@ import { FREE_SHIPPING_THRESHOLD } from '../utils/cartTotals'
  *   totals: ReturnType<import('../utils/cartTotals').getCartTotals>,
  *   variant?: 'page' | 'drawer',
  *   onCheckout?: () => void,
+ *   showCheckoutButton?: boolean,
  * }} props
  */
-export default function CartSummary({ totals, variant = 'page', onCheckout }) {
+export default function CartSummary({
+  totals,
+  variant = 'page',
+  onCheckout,
+  showCheckoutButton = true,
+}) {
+  const navigate = useNavigate()
+
   function handleCheckout() {
     if (onCheckout) {
       onCheckout()
       return
     }
-    toast.success('Checkout coming soon')
+    navigate('/checkout')
   }
 
   const disabled = totals.itemCount === 0
@@ -70,6 +77,7 @@ export default function CartSummary({ totals, variant = 'page', onCheckout }) {
       </div>
       <p className="mt-1 text-[11px] text-ink-muted">Inclusive of GST. Shipping extra when applicable.</p>
 
+      {showCheckoutButton ? (
       <button
         type="button"
         disabled={disabled}
@@ -78,6 +86,7 @@ export default function CartSummary({ totals, variant = 'page', onCheckout }) {
       >
         Proceed to checkout
       </button>
+      ) : null}
 
       {variant === 'page' ? (
         <Link

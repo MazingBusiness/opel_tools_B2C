@@ -1,14 +1,22 @@
 import { Link, useParams } from 'react-router-dom'
+import { useEffect } from 'react'
+import { useOrdersStore } from '../../../app/store/useOrdersStore'
 import { formatPrice } from '../../../shared/utils/formatPrice'
-import {
-  getMockOrderById,
-  orderItemsTotal,
-} from '../data/mockOrders'
+import { orderItemsTotal } from '../data/mockOrders'
 import { OrderStatusBadge } from '../components/OrderCard'
+import { useCurrentProfile } from '../hooks/useCurrentProfile'
 
 export default function ProfileOrderDetailPage() {
   const { orderId } = useParams()
-  const order = getMockOrderById(orderId ?? '')
+  const { user } = useCurrentProfile()
+  const ensureSeeded = useOrdersStore((s) => s.ensureSeeded)
+  const getOrderById = useOrdersStore((s) => s.getOrderById)
+
+  useEffect(() => {
+    if (user?.id) ensureSeeded(user.id)
+  }, [user?.id, ensureSeeded])
+
+  const order = user?.id ? getOrderById(user.id, orderId ?? '') : null
 
   if (!order) {
     return (

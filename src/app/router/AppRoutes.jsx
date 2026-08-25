@@ -24,6 +24,7 @@ import ProfileAddressesPage from '../../features/user/pages/ProfileAddressesPage
 import ProfileOrdersPage from '../../features/user/pages/ProfileOrdersPage'
 import ProfileOrderDetailPage from '../../features/user/pages/ProfileOrderDetailPage'
 import ProfileSecurityPage from '../../features/user/pages/ProfileSecurityPage'
+import CheckoutPage from '../../features/checkout/pages/CheckoutPage'
 
 export default function AppRoutes() {
   return (
@@ -50,6 +51,7 @@ export default function AppRoutes() {
           element={<CategoryBrowsePage />}
         />
         <Route element={<RequireAuth />}>
+          <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/profile" element={<ProfileLayout />}>
             <Route index element={<ProfileOverviewPage />} />
             <Route path="details" element={<ProfileDetailsPage />} />

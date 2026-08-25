@@ -1,15 +1,24 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { FiPackage } from 'react-icons/fi'
-import { mockOrders, ORDER_STATUS_FILTERS } from '../data/mockOrders'
+import { useOrdersStore } from '../../../app/store/useOrdersStore'
+import { ORDER_STATUS_FILTERS } from '../data/mockOrders'
 import OrderCard from '../components/OrderCard'
+import { useCurrentProfile } from '../hooks/useCurrentProfile'
 
 export default function ProfileOrdersPage() {
+  const { user } = useCurrentProfile()
+  const ensureSeeded = useOrdersStore((s) => s.ensureSeeded)
+  const allOrders = useOrdersStore((s) => (user?.id ? s.byUserId[user.id] ?? [] : []))
   const [filter, setFilter] = useState('all')
 
+  useEffect(() => {
+    if (user?.id) ensureSeeded(user.id)
+  }, [user?.id, ensureSeeded])
+
   const orders = useMemo(() => {
-    if (filter === 'all') return mockOrders
-    return mockOrders.filter((order) => order.status === filter)
-  }, [filter])
+    if (filter === 'all') return allOrders
+    return allOrders.filter((order) => order.status === filter)
+  }, [allOrders, filter])
 
   return (
     <div>
