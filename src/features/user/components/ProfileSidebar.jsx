@@ -1,15 +1,15 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { FiLogOut } from 'react-icons/fi'
 import toast from 'react-hot-toast'
-import { useAuthStore } from '../../../app/store/useAuthStore'
+import { useLogoutMutation } from '../../auth/api/hooks'
 import { PROFILE_NAV } from '../data/profileNav'
 
 export default function ProfileSidebar() {
-  const logout = useAuthStore((s) => s.logout)
   const navigate = useNavigate()
+  const logoutMutation = useLogoutMutation()
 
-  function handleLogout() {
-    logout()
+  async function handleLogout() {
+    await logoutMutation.mutateAsync()
     toast.success('Logged out')
     navigate('/')
   }
@@ -47,7 +47,8 @@ export default function ProfileSidebar() {
           <button
             type="button"
             onClick={handleLogout}
-            className="flex w-full items-center gap-2.5 rounded-md px-3 py-2.5 text-sm text-ink transition hover:bg-surface-muted"
+            disabled={logoutMutation.isPending}
+            className="flex w-full items-center gap-2.5 rounded-md px-3 py-2.5 text-sm text-ink transition hover:bg-surface-muted disabled:opacity-60"
           >
             <FiLogOut className="size-4 shrink-0" aria-hidden />
             Logout

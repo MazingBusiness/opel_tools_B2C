@@ -4,15 +4,18 @@
 
 Auth is modal-based — no dedicated login page UI. Users sign in via [`AuthModal`](../src/features/auth/components/AuthModal.jsx) from the header, a protected route, or `/login` (which redirects home and opens the modal).
 
-Flow:
+Flow (OTP — live):
 
 ```
 Identifier step (phone or email)
-  → OTP step (demo code: 123456)
-  → Session saved in useAuthStore + profile seeded
-
-Alternative: Google demo button → instant session
+  → POST /api/v1/auth/otp/request
+  → OTP step
+  → POST /api/v1/auth/otp/verify
+  → Sanctum token + user saved in useAuthStore
+  → Local profile seeded / patched from API user
 ```
+
+Google button is deferred (toast only) until Firebase is wired. See backend doc `react-firebase-google-auth.md`.
 
 Protected routes (`/checkout`, `/profile/*`) use [`RequireAuth`](../src/app/router/RequireAuth.jsx). When logged out, the guard shows a placeholder and opens the auth modal while preserving the intended URL.
 
@@ -20,39 +23,55 @@ Protected routes (`/checkout`, `/profile/*`) use [`RequireAuth`](../src/app/rout
 
 | Path | Role |
 | --- | --- |
-| [`features/auth/components/AuthModal.jsx`](../src/features/auth/components/AuthModal.jsx) | Modal shell + step orchestration |
+| [`features/auth/components/AuthModal.jsx`](../src/features/auth/components/AuthModal.jsx) | Modal shell + OTP orchestration |
+| [`features/auth/components/AuthSessionBootstrap.jsx`](../src/features/auth/components/AuthSessionBootstrap.jsx) | Revalidate persisted token via `/me` |
 | [`features/auth/components/AuthIdentifierStep.jsx`](../src/features/auth/components/AuthIdentifierStep.jsx) | Phone/email input + Google button |
-| [`features/auth/components/AuthOtpStep.jsx`](../src/features/auth/components/AuthOtpStep.jsx) | 6-digit OTP input |
+| [`features/auth/components/AuthOtpStep.jsx`](../src/features/auth/components/AuthOtpStep.jsx) | 6-digit OTP input; Resend gated by `expires_in` countdown |
 | [`features/auth/pages/LoginPage.jsx`](../src/features/auth/pages/LoginPage.jsx) | Redirects `/` + opens modal |
-| [`features/auth/utils/identifier.js`](../src/features/auth/utils/identifier.js) | Identifier parsing + `DEMO_OTP` |
+| [`features/auth/utils/identifier.js`](../src/features/auth/utils/identifier.js) | Identifier parsing |
+| [`features/auth/api/`](../src/features/auth/api/) | Endpoints, axios calls, React Query hooks |
+| [`shared/api/client.js`](../src/shared/api/client.js) | Shared axios client + Bearer + 401 handling |
 | [`app/router/RequireAuth.jsx`](../src/app/router/RequireAuth.jsx) | Route guard for checkout + profile |
-| [`app/store/useAuthStore.js`](../src/app/store/useAuthStore.js) | Persisted session |
+| [`app/store/useAuthStore.js`](../src/app/store/useAuthStore.js) | Persisted `token` + `user` |
 | [`app/store/useUiStore.js`](../src/app/store/useUiStore.js) | Modal open/close |
 | [`app/store/useProfileStore.js`](../src/app/store/useProfileStore.js) | Profile seeded on login |
-| [`features/auth/api/`](../src/features/auth/api/) | Stub API layer (endpoints empty) |
+
+## Env
+
+```
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+Copy from [`.env.example`](../.env.example). Paths in `AUTH_ENDPOINTS` are rooted at `/api/v1/auth/...`.
+
+## Backend contract
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| POST | `/api/v1/auth/otp/request` | `{ identifier }` → `{ ok, channel, expires_in }` — client disables Resend for `expires_in` seconds (typically 120 / 2 min) |
+| POST | `/api/v1/auth/otp/verify` | `{ identifier, code }` → `{ token, user, profile_complete }` |
+| GET | `/api/v1/auth/me` | Bearer |
+| PATCH | `/api/v1/auth/profile` | Bearer |
+| POST | `/api/v1/auth/logout` | Bearer |
+
+Local OTP codes appear in Laravel `storage/logs/laravel.log` when mail/SMS env is empty.
 
 ## Session shape
 
 ```js
-/** AuthUser — stored in useAuthStore */
+/** AuthUser — stored in useAuthStore (plus Sanctum token) */
 {
-  id: string,           // e.g. 'otp-9876543210' or 'google-demo'
-  identifier: string,   // normalized phone or email
+  id: string,           // server user id
+  identifier: string,   // email or phone
   method: 'otp' | 'google',
+  name?: string,
+  email?: string,
+  phone?: string,
+  avatar?: string,
 }
 ```
 
-`useAuthStore` persists to `localStorage` key `opel-auth`. On successful login, `ensureProfile(user)` creates a seed profile in `useProfileStore` if one does not exist.
-
-## Identifier validation
-
-[`parseIdentifier()`](../src/features/auth/utils/identifier.js):
-
-- Email: must match basic `EMAIL_RE`
-- Phone: 10–15 digits after stripping spaces/dashes/parens
-- Returns `{ ok, identifier, kind }` or `{ ok: false, error }`
-
-Demo OTP: **`123456`** (`DEMO_OTP` constant). No SMS/email is sent — a toast confirms "OTP sent".
+`useAuthStore` persists `token`, `user`, and `profileComplete` to `localStorage` key `opel-auth`. On login, `ensureProfile(user)` seeds `useProfileStore` when needed. Redirect to `/profile/details` is **not always** — only when the verify (or `/me`) response has `profile_complete: false` (backend flag for incomplete name / contact fields).
 
 ## RequireAuth guard
 
@@ -62,41 +81,9 @@ When `user` is null:
 2. Renders a sign-in placeholder (not a redirect)
 3. After login, the same URL renders the protected `<Outlet />`
 
-This keeps deep links like `/checkout` or `/profile/orders` intact.
+## Logout
 
-## Stub API layer
-
-[`features/auth/api/`](../src/features/auth/api/) has placeholder files ready for backend wiring:
-
-| File | Purpose |
-| --- | --- |
-| `endpoints.js` | Route paths (currently empty export) |
-| `api.js` | Request functions |
-| `hooks.js` | React Query hooks |
-| `types.js` | JSDoc type placeholders |
-
-When APIs land, move OTP send/verify and Google OAuth into `hooks.js`; keep `useAuthStore` for the session token/user only.
-
-## Dummy data & API migration
-
-| Current (mock) | Replace with |
-| --- | --- |
-| Client-side OTP check against `DEMO_OTP` | `POST /auth/otp/send` + `POST /auth/otp/verify` |
-| Google button creates fake user | Google OAuth redirect / token exchange |
-| `login(user)` sets arbitrary `id` | JWT/session from API response |
-| Profile seeded locally on login | `GET /users/me` via React Query |
-
-**Stable contracts:**
-
-- `AuthUser` fields (`id`, `identifier`, `method`) — align with API user DTO
-- Modal two-step flow (identifier → OTP) — UX likely stays
-- `RequireAuth` guard pattern — swap store check for token validity
-- `/login` → home + open modal behavior
-
-**Likely to change:**
-
-- Demo OTP constant and toast-only "send OTP"
-- User `id` format (`otp-{identifier}` vs server UUID)
+Header and profile sidebar call `logoutRequest()` which `POST`s `/auth/logout` (best effort) then clears the local session. Axios also clears the session on HTTP 401.
 
 ## Related
 

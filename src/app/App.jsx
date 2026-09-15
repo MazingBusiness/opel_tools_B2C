@@ -3,11 +3,13 @@ import { Toaster } from 'react-hot-toast'
 import { QueryProvider } from './query/QueryProvider'
 import AppRoutes from './router/AppRoutes'
 import ScrollToTop from './router/ScrollToTop'
+import AuthSessionBootstrap from '../features/auth/components/AuthSessionBootstrap'
 
 function App() {
   return (
     <QueryProvider>
       <BrowserRouter>
+        <AuthSessionBootstrap />
         <ScrollToTop />
         <AppRoutes />
         <Toaster

@@ -78,15 +78,17 @@ export function createSeedProfile(user) {
       : 'phone'
   const identifier = parsed.ok ? parsed.identifier : user.identifier
 
-  const email = kind === 'email' ? identifier : ''
-  const phone = kind === 'phone' ? identifier : ''
-  const name = kind === 'email' ? nameFromEmail(identifier) : 'OPEL Customer'
+  const email = user.email || (kind === 'email' ? identifier : '')
+  const phone = user.phone || (kind === 'phone' ? identifier : '')
+  const name =
+    (user.name && String(user.name).trim()) ||
+    (kind === 'email' ? nameFromEmail(identifier) : 'OPEL Customer')
 
   return {
     name,
     email,
     phone,
-    avatarUrl: '',
+    avatarUrl: user.avatar || '',
     passwordSet: false,
     addresses: seedAddresses(name, phone),
   }

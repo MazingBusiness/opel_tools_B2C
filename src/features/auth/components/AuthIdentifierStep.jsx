@@ -6,6 +6,7 @@ import opelLogo from '../../../assets/images/opelLogo.jpg'
  *   titleId: string,
  *   identifier: string,
  *   error: string,
+ *   busy?: boolean,
  *   onIdentifierChange: (value: string) => void,
  *   onContinue: (event: React.FormEvent) => void,
  *   onGoogle: () => void,
@@ -15,6 +16,7 @@ export default function AuthIdentifierStep({
   titleId,
   identifier,
   error,
+  busy = false,
   onIdentifierChange,
   onContinue,
   onGoogle,
@@ -31,7 +33,7 @@ export default function AuthIdentifierStep({
           Login or sign up
         </h2>
         <p className="mt-1 text-sm text-ink-muted">
-          Use your phone, email, or Google — one step to get started.
+          Use your phone or email — one step to get started.
         </p>
       </div>
 
@@ -46,9 +48,10 @@ export default function AuthIdentifierStep({
             autoComplete="username"
             inputMode="email"
             value={identifier}
+            disabled={busy}
             onChange={(event) => onIdentifierChange(event.target.value)}
             placeholder="e.g. 9876543210 or you@email.com"
-            className="w-full rounded-md border border-border bg-surface px-3 py-2.5 text-sm text-ink outline-none transition placeholder:text-ink-muted/60 focus:border-brand focus:ring-2 focus:ring-brand/25"
+            className="w-full rounded-md border border-border bg-surface px-3 py-2.5 text-sm text-ink outline-none transition placeholder:text-ink-muted/60 focus:border-brand focus:ring-2 focus:ring-brand/25 disabled:opacity-60"
             aria-invalid={error ? 'true' : undefined}
             aria-describedby={error ? 'auth-identifier-error' : undefined}
           />
@@ -62,9 +65,10 @@ export default function AuthIdentifierStep({
 
         <button
           type="submit"
-          className="mt-1 w-full rounded-md bg-highlight px-4 py-2.5 text-sm font-bold text-cta-foreground transition hover:bg-highlight-dark"
+          disabled={busy}
+          className="mt-1 w-full rounded-md bg-highlight px-4 py-2.5 text-sm font-bold text-cta-foreground transition hover:bg-highlight-dark disabled:opacity-60"
         >
-          Continue
+          {busy ? 'Sending…' : 'Continue'}
         </button>
       </form>
 
@@ -77,10 +81,11 @@ export default function AuthIdentifierStep({
       <button
         type="button"
         onClick={onGoogle}
-        className="flex w-full items-center justify-center gap-2 rounded-md border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-brand/40 hover:bg-surface-muted"
+        disabled={busy}
+        className="flex w-full items-center justify-center gap-2 rounded-md border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-brand/40 hover:bg-surface-muted disabled:opacity-60"
       >
         <FcGoogle className="size-5" aria-hidden />
-        Continue with Google
+        Continue with Google (soon)
       </button>
     </div>
   )

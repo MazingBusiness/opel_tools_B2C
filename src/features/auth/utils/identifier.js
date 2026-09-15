@@ -1,10 +1,7 @@
-/** Shared auth helpers for the mock login modal. */
+/** Shared auth helpers for identifier validation. */
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PHONE_RE = /^\+?\d{10,15}$/
-
-/** Demo OTP accepted by the mock verifier. */
-export const DEMO_OTP = '123456'
 
 /**
  * @param {string} raw

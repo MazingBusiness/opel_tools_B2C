@@ -1,5 +1,13 @@
-import { useEffect, useRef } from 'react'
-import { DEMO_OTP } from '../utils/identifier'
+import { useEffect, useRef, useState } from 'react'
+
+/**
+ * @param {number} totalSeconds
+ */
+function formatCountdown(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return `${minutes}:${String(seconds).padStart(2, '0')}`
+}
 
 /**
  * @param {{
@@ -7,6 +15,9 @@ import { DEMO_OTP } from '../utils/identifier'
  *   identifier: string,
  *   digits: string[],
  *   error: string,
+ *   busy?: boolean,
+ *   resendCooldownSeconds?: number,
+ *   resendEpoch?: number,
  *   onDigitsChange: (digits: string[]) => void,
  *   onVerify: (event: React.FormEvent) => void,
  *   onResend: () => void,
@@ -18,16 +29,37 @@ export default function AuthOtpStep({
   identifier,
   digits,
   error,
+  busy = false,
+  resendCooldownSeconds = 120,
+  resendEpoch = 0,
   onDigitsChange,
   onVerify,
   onResend,
   onBack,
 }) {
   const inputsRef = useRef([])
+  const [secondsLeft, setSecondsLeft] = useState(resendCooldownSeconds)
 
   useEffect(() => {
     inputsRef.current[0]?.focus()
   }, [])
+
+  useEffect(() => {
+    setSecondsLeft(resendCooldownSeconds)
+    if (resendCooldownSeconds <= 0) return undefined
+
+    const id = window.setInterval(() => {
+      setSecondsLeft((prev) => {
+        if (prev <= 1) {
+          window.clearInterval(id)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => window.clearInterval(id)
+  }, [resendCooldownSeconds, resendEpoch])
 
   function setDigitAt(index, value) {
     const next = [...digits]
@@ -73,12 +105,15 @@ export default function AuthOtpStep({
     inputsRef.current[Math.min(pasted.length, 5)]?.focus()
   }
 
+  const resendDisabled = busy || secondsLeft > 0
+
   return (
     <div className="px-5 pb-6 pt-5 sm:px-7">
       <button
         type="button"
         onClick={onBack}
-        className="mb-4 text-sm font-semibold text-brand transition hover:text-brand-dark"
+        disabled={busy}
+        className="mb-4 text-sm font-semibold text-brand transition hover:text-brand-dark disabled:opacity-60"
       >
         ← Change phone / email
       </button>
@@ -88,9 +123,6 @@ export default function AuthOtpStep({
       </h2>
       <p className="mt-1 text-sm text-ink-muted">
         We sent a code to <span className="font-semibold text-ink">{identifier}</span>
-      </p>
-      <p className="mt-1 text-xs text-ink-muted">
-        Demo: use <span className="font-mono font-semibold text-brand">{DEMO_OTP}</span>
       </p>
 
       <form onSubmit={onVerify} className="mt-5 flex flex-col gap-4">
@@ -106,10 +138,11 @@ export default function AuthOtpStep({
               autoComplete={index === 0 ? 'one-time-code' : 'off'}
               maxLength={6}
               value={digit}
+              disabled={busy}
               onChange={(event) => handleChange(index, event)}
               onKeyDown={(event) => handleKeyDown(index, event)}
               aria-label={`Digit ${index + 1}`}
-              className="size-11 rounded-md border border-border bg-surface text-center text-lg font-bold text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/25 sm:size-12"
+              className="size-11 rounded-md border border-border bg-surface text-center text-lg font-bold text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/25 disabled:opacity-60 sm:size-12"
             />
           ))}
         </div>
@@ -122,9 +155,10 @@ export default function AuthOtpStep({
 
         <button
           type="submit"
-          className="w-full rounded-md bg-highlight px-4 py-2.5 text-sm font-bold text-cta-foreground transition hover:bg-highlight-dark"
+          disabled={busy}
+          className="w-full rounded-md bg-highlight px-4 py-2.5 text-sm font-bold text-cta-foreground transition hover:bg-highlight-dark disabled:opacity-60"
         >
-          Verify &amp; continue
+          {busy ? 'Verifying…' : 'Verify & continue'}
         </button>
       </form>
 
@@ -133,9 +167,12 @@ export default function AuthOtpStep({
         <button
           type="button"
           onClick={onResend}
-          className="font-semibold text-brand transition hover:text-brand-dark"
+          disabled={resendDisabled}
+          className="font-semibold text-brand transition hover:text-brand-dark disabled:opacity-60"
         >
-          Resend OTP
+          {secondsLeft > 0
+            ? `Resend in ${formatCountdown(secondsLeft)}`
+            : 'Resend OTP'}
         </button>
       </p>
     </div>

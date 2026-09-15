@@ -6,12 +6,24 @@ import { useUiStore } from '../store/useUiStore'
 
 /** Guard for /profile/* — opens the auth modal and stays on the intended URL. */
 export default function RequireAuth() {
+  const hasHydrated = useAuthStore((s) => s.hasHydrated)
   const user = useAuthStore((s) => s.user)
   const openAuthModal = useUiStore((s) => s.openAuthModal)
 
   useEffect(() => {
-    if (!user) openAuthModal()
-  }, [user, openAuthModal])
+    if (hasHydrated && !user) openAuthModal()
+  }, [hasHydrated, user, openAuthModal])
+
+  // Wait for persist only when we don't already have a session in memory.
+  // If `user` is set (fresh login or rehydrate merge) but `hasHydrated` is
+  // stuck false, never block the profile outlet behind an empty skeleton.
+  if (!hasHydrated && !user) {
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-16">
+        <div className="mx-auto h-40 max-w-md animate-pulse rounded-lg border border-border bg-surface-muted" />
+      </div>
+    )
+  }
 
   if (!user) {
     return (
@@ -24,7 +36,7 @@ export default function RequireAuth() {
             Sign in to view your account
           </h1>
           <p className="mt-2 text-sm text-ink-muted">
-            Log in with phone, email, or Google to open your OPEL dashboard.
+            Log in with phone or email to open your OPEL dashboard.
           </p>
           <button
             type="button"

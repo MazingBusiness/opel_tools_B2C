@@ -1,27 +1,50 @@
 import { useEffect, useId, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { FiX } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import { useUiStore } from '../../../app/store/useUiStore'
 import { useAuthStore } from '../../../app/store/useAuthStore'
 import { useProfileStore } from '../../../app/store/useProfileStore'
-import { DEMO_OTP, parseIdentifier } from '../utils/identifier'
+import { getErrorMessage } from '../../../shared/api/client'
+import { parseIdentifier } from '../utils/identifier'
+import { useRequestOtpMutation, useVerifyOtpMutation } from '../api/hooks'
 import AuthIdentifierStep from './AuthIdentifierStep'
 import AuthOtpStep from './AuthOtpStep'
 
 const EMPTY_OTP = ['', '', '', '', '', '']
+const DEFAULT_RESEND_COOLDOWN_SECONDS = 120
+
+/**
+ * @param {unknown} expiresIn
+ */
+function normalizeExpiresIn(expiresIn) {
+  const n = Number(expiresIn)
+  if (!Number.isFinite(n) || n <= 0) return DEFAULT_RESEND_COOLDOWN_SECONDS
+  return Math.floor(n)
+}
 
 export default function AuthModal() {
   const isOpen = useUiStore((s) => s.isAuthModalOpen)
   const closeAuthModal = useUiStore((s) => s.closeAuthModal)
-  const login = useAuthStore((s) => s.login)
   const ensureProfile = useProfileStore((s) => s.ensureProfile)
+  const updateProfile = useProfileStore((s) => s.updateProfile)
+  const navigate = useNavigate()
+
+  const requestOtp = useRequestOtpMutation()
+  const verifyOtp = useVerifyOtpMutation()
 
   const [step, setStep] = useState('identifier')
   const [identifierInput, setIdentifierInput] = useState('')
   const [resolvedIdentifier, setResolvedIdentifier] = useState('')
   const [digits, setDigits] = useState(EMPTY_OTP)
   const [error, setError] = useState('')
+  const [resendCooldownSeconds, setResendCooldownSeconds] = useState(
+    DEFAULT_RESEND_COOLDOWN_SECONDS,
+  )
+  const [resendEpoch, setResendEpoch] = useState(0)
   const titleId = useId()
+
+  const busy = requestOtp.isPending || verifyOtp.isPending
 
   useEffect(() => {
     if (!isOpen) return undefined
@@ -30,7 +53,7 @@ export default function AuthModal() {
     document.body.style.overflow = 'hidden'
 
     function onKeyDown(event) {
-      if (event.key === 'Escape') closeAuthModal()
+      if (event.key === 'Escape' && !busy) closeAuthModal()
     }
 
     document.addEventListener('keydown', onKeyDown)
@@ -38,7 +61,7 @@ export default function AuthModal() {
       document.body.style.overflow = previousOverflow
       document.removeEventListener('keydown', onKeyDown)
     }
-  }, [isOpen, closeAuthModal])
+  }, [isOpen, closeAuthModal, busy])
 
   useEffect(() => {
     if (!isOpen) {
@@ -47,69 +70,123 @@ export default function AuthModal() {
       setResolvedIdentifier('')
       setDigits(EMPTY_OTP)
       setError('')
+      setResendCooldownSeconds(DEFAULT_RESEND_COOLDOWN_SECONDS)
+      setResendEpoch(0)
+      requestOtp.reset()
+      verifyOtp.reset()
     }
+    // Only reset when the modal closes/opens — not on mutation identity churn.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen])
 
   if (!isOpen) return null
 
-  function handleContinue(event) {
+  /**
+   * @param {number} expiresIn
+   */
+  function startResendCooldown(expiresIn) {
+    setResendCooldownSeconds(normalizeExpiresIn(expiresIn))
+    setResendEpoch((epoch) => epoch + 1)
+  }
+
+  /**
+   * @param {import('../../../app/store/useAuthStore').AuthUser} user
+   * @param {boolean} profileComplete
+   */
+  function finishLogin(user, profileComplete) {
+    // Seed / fill blank local profile fields from the API user (email/phone/name).
+    ensureProfile(user)
+    const local = useProfileStore.getState().byUserId[user.id]
+    if (local) {
+      updateProfile(user.id, {
+        ...(user.name ? { name: user.name } : {}),
+        ...(user.email ? { email: user.email } : {}),
+        ...(user.phone ? { phone: user.phone } : {}),
+        ...(user.avatar ? { avatarUrl: user.avatar } : {}),
+      })
+    }
+    toast.success('Logged in successfully')
+    closeAuthModal()
+    if (!profileComplete) {
+      navigate('/profile/details')
+      toast('Complete your profile to continue')
+    }
+  }
+
+  async function handleContinue(event) {
     event.preventDefault()
+    if (busy) return
+
     const parsed = parseIdentifier(identifierInput)
     if (!parsed.ok) {
       setError(parsed.error)
       return
     }
+
     setError('')
-    setResolvedIdentifier(parsed.identifier)
-    setDigits(EMPTY_OTP)
-    setStep('otp')
-    toast.success(`OTP sent to ${parsed.identifier}`)
+    try {
+      const data = await requestOtp.mutateAsync(parsed.identifier)
+      setResolvedIdentifier(parsed.identifier)
+      setDigits(EMPTY_OTP)
+      startResendCooldown(data.expires_in)
+      setStep('otp')
+      toast.success(`OTP sent to ${parsed.identifier}`)
+    } catch (err) {
+      setError(getErrorMessage(err, 'Could not send OTP. Please try again.'))
+    }
   }
 
-  function handleVerify(event) {
+  async function handleVerify(event) {
     event.preventDefault()
+    if (busy) return
+
     const code = digits.join('')
     if (code.length < 6) {
       setError('Enter the 6-digit OTP.')
       return
     }
-    if (code !== DEMO_OTP) {
-      setError('Invalid OTP. Use 123456 for this demo.')
-      return
+
+    setError('')
+    try {
+      const data = await verifyOtp.mutateAsync({
+        identifier: resolvedIdentifier,
+        code,
+      })
+      const user = useAuthStore.getState().user
+      if (!user) {
+        setError('Login succeeded but session was not saved. Please try again.')
+        return
+      }
+      finishLogin(user, Boolean(data.profile_complete ?? data.user?.profile_complete))
+    } catch (err) {
+      setError(getErrorMessage(err, 'Invalid or expired OTP. Please try again.'))
     }
-    const user = {
-      id: `otp-${resolvedIdentifier}`,
-      identifier: resolvedIdentifier,
-      method: 'otp',
-    }
-    login(user)
-    ensureProfile(user)
-    toast.success('Logged in successfully')
-    closeAuthModal()
   }
 
-  function handleGoogle() {
-    const user = {
-      id: 'google-demo',
-      identifier: 'google.user@opel.demo',
-      method: 'google',
-    }
-    login(user)
-    ensureProfile(user)
-    toast.success('Logged in with Google')
-    closeAuthModal()
-  }
-
-  function handleResend() {
+  async function handleResend() {
+    if (busy || !resolvedIdentifier) return
     setDigits(EMPTY_OTP)
     setError('')
-    toast.success(`OTP resent to ${resolvedIdentifier}`)
+    try {
+      const data = await requestOtp.mutateAsync(resolvedIdentifier)
+      startResendCooldown(data.expires_in)
+      toast.success(`OTP resent to ${resolvedIdentifier}`)
+    } catch (err) {
+      setError(getErrorMessage(err, 'Could not resend OTP. Please try again.'))
+    }
   }
 
   function handleBack() {
+    if (busy) return
     setStep('identifier')
     setDigits(EMPTY_OTP)
     setError('')
+    setResendCooldownSeconds(DEFAULT_RESEND_COOLDOWN_SECONDS)
+    setResendEpoch(0)
+  }
+
+  function handleGoogle() {
+    toast('Google sign-in is coming soon.')
   }
 
   return (
@@ -117,7 +194,7 @@ export default function AuthModal() {
       className="fixed inset-0 z-[100] flex items-end justify-center bg-secondary/50 p-0 sm:items-center sm:p-4"
       role="presentation"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) closeAuthModal()
+        if (event.target === event.currentTarget && !busy) closeAuthModal()
       }}
     >
       <div
@@ -131,7 +208,8 @@ export default function AuthModal() {
         <button
           type="button"
           onClick={closeAuthModal}
-          className="absolute right-3 top-4 rounded-md p-1.5 text-ink-muted transition hover:bg-surface-muted hover:text-ink"
+          disabled={busy}
+          className="absolute right-3 top-4 rounded-md p-1.5 text-ink-muted transition hover:bg-surface-muted hover:text-ink disabled:opacity-50"
           aria-label="Close"
         >
           <FiX className="size-5" />
@@ -144,6 +222,7 @@ export default function AuthModal() {
             titleId={titleId}
             identifier={identifierInput}
             error={error}
+            busy={busy}
             onIdentifierChange={(value) => {
               setIdentifierInput(value)
               if (error) setError('')
@@ -157,6 +236,9 @@ export default function AuthModal() {
             identifier={resolvedIdentifier}
             digits={digits}
             error={error}
+            busy={busy}
+            resendCooldownSeconds={resendCooldownSeconds}
+            resendEpoch={resendEpoch}
             onDigitsChange={(next) => {
               setDigits(next)
               if (error) setError('')

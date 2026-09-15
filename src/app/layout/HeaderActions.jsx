@@ -12,11 +12,11 @@ import {
 import toast from 'react-hot-toast'
 import { useUiStore } from '../store/useUiStore'
 import { useAuthStore } from '../store/useAuthStore'
+import { useLogoutMutation } from '../../features/auth/api/hooks'
 import { useProfileStore } from '../store/useProfileStore'
 import { useCartStore } from '../store/useCartStore'
 import { useWishlistStore } from '../store/useWishlistStore'
 import { getCartTotals } from '../../features/cart/utils/cartTotals'
-import ProfileAvatar from '../../features/user/components/ProfileAvatar'
 
 function truncateIdentifier(identifier) {
   if (!identifier) return 'Account'
@@ -36,6 +36,7 @@ export default function HeaderActions() {
   const [accountOpen, setAccountOpen] = useState(false)
   const accountRef = useRef(null)
   const navigate = useNavigate()
+  const logoutMutation = useLogoutMutation()
 
   const openAuthModal = useUiStore((s) => s.openAuthModal)
   const openCart = useUiStore((s) => s.openCart)
@@ -44,7 +45,6 @@ export default function HeaderActions() {
   const cartCount = getCartTotals(cartItems).itemCount
   const wishlistCount = useWishlistStore((s) => s.items.length)
   const user = useAuthStore((s) => s.user)
-  const logout = useAuthStore((s) => s.logout)
   const ensureProfile = useProfileStore((s) => s.ensureProfile)
   const hasHydrated = useProfileStore((s) => s.hasHydrated)
   const profile = useProfileStore((s) =>
@@ -65,9 +65,9 @@ export default function HeaderActions() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  function handleLogout() {
-    logout()
+  async function handleLogout() {
     setAccountOpen(false)
+    await logoutMutation.mutateAsync()
     toast.success('Logged out')
     navigate('/')
   }
@@ -83,15 +83,7 @@ export default function HeaderActions() {
             aria-expanded={accountOpen}
             aria-haspopup="menu"
           >
-            {profile?.name ? (
-              <ProfileAvatar
-                name={profile.name}
-                avatarUrl={profile.avatarUrl}
-                size="xs"
-              />
-            ) : (
-              <FiUser className="size-5" />
-            )}
+            <FiUser className="size-5" />
             <span className="hidden max-w-24 truncate text-[11px] font-medium lg:inline">
               {displayLabel(profile, user.identifier)}
             </span>

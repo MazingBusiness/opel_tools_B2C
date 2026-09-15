@@ -37,15 +37,49 @@ export const useProfileStore = create(
       hasHydrated: false,
 
       /**
-       * @param {{ id: string, identifier: string, method: string }} user
+       * Seed a profile if missing; fill blank contact fields from the auth user.
+       * @param {{ id: string, identifier: string, method: string, name?: string, email?: string, phone?: string, avatar?: string }} user
        */
       ensureProfile: (user) => {
         if (!user?.id || !get().hasHydrated) return
-        if (get().byUserId[user.id]) return
+        const existing = get().byUserId[user.id]
+        const seed = createSeedProfile(user)
+
+        if (!existing) {
+          set((state) => ({
+            byUserId: {
+              ...state.byUserId,
+              [user.id]: seed,
+            },
+          }))
+          return
+        }
+
+        /** Prefer non-empty API / seed values for blank local fields. */
+        const next = {
+          ...existing,
+          email: existing.email || seed.email || '',
+          phone: existing.phone || seed.phone || '',
+          avatarUrl: existing.avatarUrl || seed.avatarUrl || '',
+          name:
+            existing.name && existing.name !== 'OPEL Customer'
+              ? existing.name
+              : seed.name || existing.name,
+        }
+
+        if (
+          next.email === existing.email &&
+          next.phone === existing.phone &&
+          next.avatarUrl === existing.avatarUrl &&
+          next.name === existing.name
+        ) {
+          return
+        }
+
         set((state) => ({
           byUserId: {
             ...state.byUserId,
-            [user.id]: createSeedProfile(user),
+            [user.id]: next,
           },
         }))
       },

@@ -11,19 +11,19 @@ export default function ProfileDetailsPage() {
   const updateProfile = useProfileStore((s) => s.updateProfile)
   const formId = useId()
 
-  const [name, setName] = useState(profile?.name ?? '')
-  const [email, setEmail] = useState(profile?.email ?? '')
-  const [phone, setPhone] = useState(profile?.phone ?? '')
-  const [avatarUrl, setAvatarUrl] = useState(profile?.avatarUrl ?? '')
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState('')
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (!profile) return
-    setName(profile.name)
-    setEmail(profile.email)
-    setPhone(profile.phone)
-    setAvatarUrl(profile.avatarUrl)
-  }, [profile])
+    if (!profile && !user) return
+    setName(profile?.name || user?.name || '')
+    setEmail(profile?.email || user?.email || '')
+    setPhone(profile?.phone || user?.phone || '')
+    setAvatarUrl(profile?.avatarUrl || user?.avatar || '')
+  }, [profile, user])
 
   function handleAvatar(event) {
     const file = event.target.files?.[0]
