@@ -17,6 +17,7 @@ import { useProfileStore } from '../store/useProfileStore'
 import { useCartStore } from '../store/useCartStore'
 import { useWishlistStore } from '../store/useWishlistStore'
 import { getCartTotals } from '../../features/cart/utils/cartTotals'
+import { resolveDisplayName } from '../../features/user/utils/profileHelpers'
 
 function truncateIdentifier(identifier) {
   if (!identifier) return 'Account'
@@ -24,12 +25,13 @@ function truncateIdentifier(identifier) {
   return `${identifier.slice(0, 12)}…`
 }
 
-function displayLabel(profile, identifier) {
-  const name = profile?.name?.trim()
-  if (name && name !== 'OPEL Customer') {
-    return name.split(/\s+/)[0]
-  }
-  return truncateIdentifier(identifier)
+/**
+ * Short label under the header account icon (first name when possible).
+ */
+function displayLabel(user, profile, identifier) {
+  const full = resolveDisplayName(user, profile)
+  if (full) return full.split(/\s+/)[0]
+  return truncateIdentifier(identifier || user?.identifier)
 }
 
 export default function HeaderActions() {
@@ -85,7 +87,7 @@ export default function HeaderActions() {
           >
             <FiUser className="size-5" />
             <span className="hidden max-w-24 truncate text-[11px] font-medium lg:inline">
-              {displayLabel(profile, user.identifier)}
+              {displayLabel(user, profile, user.identifier)}
             </span>
           </button>
           {accountOpen ? (
@@ -93,10 +95,21 @@ export default function HeaderActions() {
               role="menu"
               className="absolute right-0 z-50 mt-1 min-w-48 rounded-md border border-border bg-surface py-1 shadow-md"
             >
-              <p className="truncate border-b border-border px-3 py-2 text-xs text-ink-muted">
-                {profile?.name ? `${profile.name} · ` : ''}
-                {user.identifier}
-              </p>
+              {(() => {
+                const displayName = resolveDisplayName(user, profile)
+                return (
+                  <div className="border-b border-border px-3 py-2">
+                    <p className="truncate text-sm font-semibold text-ink">
+                      {displayName || user.identifier}
+                    </p>
+                    {displayName && user.identifier ? (
+                      <p className="mt-0.5 truncate text-xs text-ink-muted">
+                        {user.identifier}
+                      </p>
+                    ) : null}
+                  </div>
+                )
+              })()}
               <Link
                 to="/profile"
                 role="menuitem"

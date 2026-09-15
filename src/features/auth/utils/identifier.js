@@ -1,7 +1,36 @@
-/** Shared auth helpers for identifier validation. */
+/** Shared auth helpers for identifier validation (aligned with Laravel LoginIdentifier). */
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const PHONE_RE = /^\+?\d{10,15}$/
+
+/**
+ * Normalize / validate an Indian mobile number the same way the API does.
+ * Accepts 10-digit, 0-prefixed 11-digit, or 91-prefixed 12-digit input.
+ *
+ * @param {string} raw
+ * @returns {{ ok: true, identifier: string } | { ok: false, error: string }}
+ */
+export function parseIndianPhone(raw) {
+  let digits = String(raw ?? '').replace(/\D+/g, '')
+
+  if (digits.startsWith('0') && digits.length === 11) {
+    digits = digits.slice(1)
+  }
+
+  if (digits.length === 10) {
+    digits = `91${digits}`
+  }
+
+  if (digits.length !== 12 || !digits.startsWith('91')) {
+    return { ok: false, error: 'Enter a valid 10-digit Indian mobile number.' }
+  }
+
+  const subscriber = digits.slice(2)
+  if (!/^[6-9]\d{9}$/.test(subscriber)) {
+    return { ok: false, error: 'Enter a valid 10-digit Indian mobile number.' }
+  }
+
+  return { ok: true, identifier: digits }
+}
 
 /**
  * @param {string} raw
@@ -20,9 +49,7 @@ export function parseIdentifier(raw) {
     return { ok: true, identifier: value.toLowerCase(), kind: 'email' }
   }
 
-  const phone = value.replace(/[\s\-()]/g, '')
-  if (!PHONE_RE.test(phone)) {
-    return { ok: false, error: 'Enter a valid phone number (10–15 digits).' }
-  }
-  return { ok: true, identifier: phone, kind: 'phone' }
+  const phone = parseIndianPhone(value)
+  if (!phone.ok) return phone
+  return { ok: true, identifier: phone.identifier, kind: 'phone' }
 }

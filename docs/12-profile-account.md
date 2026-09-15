@@ -80,8 +80,9 @@ On login, [`ensureProfile(user)`](../src/app/store/useProfileStore.js) creates a
 
 ### Details
 
-- Edit profile fields; saves via `updateProfile(userId, patch)`
-- Avatar upload is UI placeholder
+- Edit name, email, phone via `PATCH /api/v1/auth/profile` (`useUpdateProfileMutation`)
+- Loads from `GET /api/v1/auth/me` when signed in
+- Avatar is omitted from PATCH until a photo upload API exists (so saves do not clear a stored photo)
 
 ### Addresses
 

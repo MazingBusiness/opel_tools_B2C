@@ -33,7 +33,7 @@ export async function fetchMe() {
 }
 
 /**
- * @param {{ name?: string, email?: string, phone?: string, avatar?: string }} payload
+ * @param {{ name?: string | null, email?: string | null, phone?: string | null, avatar?: string | null }} payload
  * @returns {Promise<import('./types.js').AuthMeResponse>}
  */
 export async function updateProfile(payload) {

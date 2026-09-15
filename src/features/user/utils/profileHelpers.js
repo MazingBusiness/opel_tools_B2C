@@ -20,6 +20,21 @@ export function getInitials(name) {
 }
 
 /**
+ * Prefer a real display name over the seed placeholder / identifier.
+ * @param {{ name?: string } | null | undefined} user
+ * @param {{ name?: string } | null | undefined} profile
+ * @returns {string}
+ */
+export function resolveDisplayName(user, profile) {
+  const candidates = [user?.name, profile?.name]
+  for (const raw of candidates) {
+    const name = String(raw ?? '').trim()
+    if (name && name !== 'OPEL Customer') return name
+  }
+  return ''
+}
+
+/**
  * @param {string} email
  */
 export function nameFromEmail(email) {

@@ -1,12 +1,14 @@
 import { Outlet, useLocation, useMatch } from 'react-router-dom'
 import Breadcrumb from '../../../shared/components/Breadcrumb'
 import { useCurrentProfile } from '../hooks/useCurrentProfile'
+import { resolveDisplayName } from '../utils/profileHelpers'
 import { getProfileSectionLabel } from '../data/profileNav'
 import ProfileSidebar from '../components/ProfileSidebar'
 import ProfileMobileNav from '../components/ProfileMobileNav'
 
 export default function ProfileLayout() {
-  const { profile } = useCurrentProfile()
+  const { user, profile } = useCurrentProfile()
+  const displayName = resolveDisplayName(user, profile)
   const { pathname } = useLocation()
   const orderMatch = useMatch('/profile/orders/:orderId')
   const orderId = orderMatch?.params.orderId
@@ -29,8 +31,8 @@ export default function ProfileLayout() {
           My Account
         </h1>
         <p className="mt-1 text-sm text-ink-muted">
-          {profile?.name
-            ? `Welcome back, ${profile.name}.`
+          {displayName
+            ? `Welcome back, ${displayName}.`
             : 'Manage your profile, orders, and security.'}
         </p>
 

@@ -8,13 +8,14 @@ import {
 } from 'react-icons/fi'
 import SectionHeading from '../../../shared/components/SectionHeading'
 import { useCurrentProfile } from '../hooks/useCurrentProfile'
-import { getCompleteness } from '../utils/profileHelpers'
+import { getCompleteness, resolveDisplayName } from '../utils/profileHelpers'
 import { mockOrders } from '../data/mockOrders'
 import ProfileAvatar from '../components/ProfileAvatar'
 import OrderCard from '../components/OrderCard'
 
 export default function ProfileOverviewPage() {
   const { user, profile } = useCurrentProfile()
+  const displayName = resolveDisplayName(user, profile)
   const completeness = getCompleteness(profile)
   const inTransit = mockOrders.filter(
     (order) => order.status === 'processing' || order.status === 'shipped',
@@ -54,13 +55,13 @@ export default function ProfileOverviewPage() {
         <div className="h-1.5 w-full bg-brand" aria-hidden />
         <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:p-5">
           <ProfileAvatar
-            name={profile?.name}
-            avatarUrl={profile?.avatarUrl}
+            name={displayName || profile?.name}
+            avatarUrl={profile?.avatarUrl || user?.avatar || ''}
             size="lg"
           />
           <div className="min-w-0 flex-1">
             <h2 className="text-xl font-extrabold tracking-tight text-ink">
-              {profile?.name || 'OPEL Customer'}
+              {displayName || user?.identifier || 'OPEL Customer'}
             </h2>
             <p className="mt-0.5 truncate text-sm text-ink-muted">
               {user?.identifier}
@@ -69,14 +70,14 @@ export default function ProfileOverviewPage() {
               <span className="rounded-md border border-brand/30 bg-brand/5 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-brand">
                 {user?.method === 'google' ? 'Google' : 'OTP'}
               </span>
-              {profile?.email ? (
+              {(profile?.email || user?.email) ? (
                 <span className="rounded-md border border-border px-2 py-0.5 text-xs text-ink-muted">
-                  {profile.email}
+                  {profile?.email || user?.email}
                 </span>
               ) : null}
-              {profile?.phone ? (
+              {(profile?.phone || user?.phone) ? (
                 <span className="rounded-md border border-border px-2 py-0.5 text-xs text-ink-muted">
-                  {profile.phone}
+                  {profile?.phone || user?.phone}
                 </span>
               ) : null}
             </div>
