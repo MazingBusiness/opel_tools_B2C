@@ -89,7 +89,7 @@ Consistent height via:
 
 Fields: `id`, `title`, `imageUrl`, `rating`, `reviewCount`, `currentPrice`, `originalPrice`, `discountPercentage`, `href?`.
 
-Cart / buy actions are UI-only for now (no Zustand cart wiring yet).
+Cart and wishlist actions are wired via `useCart` / `useWishlist` hooks (see [09-cart-wishlist.md](./09-cart-wishlist.md)).
 
 ## Embla usage
 
@@ -99,7 +99,30 @@ Cart / buy actions are UI-only for now (no Zustand cart wiring yet).
 | Category product rail | Yes |
 | Banner strip | **No** — static grid |
 
+## Dummy data & API migration
+
+| Current (mock) | Replace with |
+| --- | --- |
+| `heroSlides.js` static array | CMS hero API or `GET /banners/hero` |
+| `categorySections.js` curated bands | `GET /homepage/sections` or catalog API |
+| `bannerSections.js` promo strips | CMS banner API |
+| Unsplash image URLs | CDN URLs from API |
+| Brand logos in category bands | Brand API / asset CDN |
+
+**Stable contracts:**
+
+- `CategorySection` and `BannerSection` prop shapes (keep components, swap data source)
+- Homepage composition order (hero → interleaved categories + banners)
+- `ProductCard` field set shared with [07-products-catalog.md](./07-products-catalog.md)
+
+**Likely to change:**
+
+- Number of category bands and banner strips
+- Dummy brand/product IDs in section data
+
 ## Related
 
 - [03-folder-structure.md](./03-folder-structure.md)
-- [02-dependencies.md](./02-dependencies.md)
+- [07-products-catalog.md](./07-products-catalog.md)
+- [08-category-browse.md](./08-category-browse.md)
+- [09-cart-wishlist.md](./09-cart-wishlist.md)

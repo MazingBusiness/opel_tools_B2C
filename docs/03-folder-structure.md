@@ -74,13 +74,29 @@ src/
 
 1. [`src/main.jsx`](../src/main.jsx) mounts the app and imports [`src/app/App.jsx`](../src/app/App.jsx).
 2. `App` wraps the tree in `QueryProvider` + `BrowserRouter`, then renders `AppRoutes`.
-3. Public pages nest under [`MainLayout`](../src/app/layout/MainLayout.jsx) (`Header` + `<Outlet />` + `Footer` + auth modal). Header stack: promo `TopBar` + `MainBar` + `CategoryNav` (hover/tap mega menu with static OPEL tool categories in `categoryNavData.js`). Logo at [`src/assets/images/opelLogo.jpg`](../src/assets/images/opelLogo.jpg). Footer is marketplace-inspired (trust strip, link columns, contact/social, legal) with OPEL copy and brand accents — not a port of B2B/Moglix markup.
-4. Auth: header “Login Now” opens [`AuthModal`](../src/features/auth/components/AuthModal.jsx) (phone/email → OTP, or Google). Session lives in [`useAuthStore`](../src/app/store/useAuthStore.js) (persisted); modal open state in [`useUiStore`](../src/app/store/useUiStore.js). `/login` redirects home and opens the modal. Mock OTP `123456` until API is wired.
-5. Homepage composition (hero, category bands, static banner strips, shared product card): [04-homepage.md](./04-homepage.md).
-6. API base URL comes from `VITE_API_BASE_URL` (see [`.env.example`](../.env.example)). Copy to `.env` for local use.
+3. Public pages nest under [`MainLayout`](../src/app/layout/MainLayout.jsx). See [05-layout-navigation.md](./05-layout-navigation.md) for header, footer, drawers, and category nav.
+4. Auth: modal-based login, `RequireAuth` guard, persisted session. See [06-auth.md](./06-auth.md).
+5. API base URL comes from `VITE_API_BASE_URL` (see [`.env.example`](../.env.example)). Copy to `.env` for local use.
+
+## Feature docs
+
+| Area | Doc |
+| --- | --- |
+| Homepage | [04-homepage.md](./04-homepage.md) |
+| Layout & navigation | [05-layout-navigation.md](./05-layout-navigation.md) |
+| Authentication | [06-auth.md](./06-auth.md) |
+| Products catalog | [07-products-catalog.md](./07-products-catalog.md) |
+| Category browse | [08-category-browse.md](./08-category-browse.md) |
+| Cart & wishlist | [09-cart-wishlist.md](./09-cart-wishlist.md) |
+| Checkout | [10-checkout.md](./10-checkout.md) |
+| Orders & tracking | [11-orders-tracking.md](./11-orders-tracking.md) |
+| Profile & account | [12-profile-account.md](./12-profile-account.md) |
+| Location & pincode | [13-location-pincode.md](./13-location-pincode.md) |
+
+Full index: [README.md](./README.md).
 
 ## Related
 
 - [01-project-initialisation.md](./01-project-initialisation.md)
 - [02-dependencies.md](./02-dependencies.md)
-- [04-homepage.md](./04-homepage.md)
+- [README.md](./README.md)
