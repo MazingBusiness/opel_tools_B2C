@@ -1,4 +1,5 @@
 import ProductCard from '../../../shared/components/ProductCard'
+import { PRODUCT_GRID_CLASS } from '../utils/productGridLayout'
 
 /**
  * @param {{ products: Array<object> }} props
@@ -16,9 +17,9 @@ export default function ProductResultsGrid({ products }) {
   }
 
   return (
-    <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 lg:gap-3 xl:grid-cols-5">
+    <ul className={PRODUCT_GRID_CLASS}>
       {products.map((product) => (
-        <li key={product.id}>
+        <li key={product.id} className="min-w-0">
           <ProductCard {...product} />
         </li>
       ))}

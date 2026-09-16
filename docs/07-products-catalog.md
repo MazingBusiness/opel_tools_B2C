@@ -2,7 +2,7 @@
 
 ## Overview
 
-The catalog covers product listing ([`/products`](../src/features/products/pages/ProductsPage.jsx)) and product detail ([`/products/:productId`](../src/features/products/pages/ProductDetailPage.jsx)). Filters, search, sort, and pagination are **URL-driven** via query params — no filter state in Zustand.
+The catalog covers product listing ([`/products`](../src/features/products/pages/ProductsPage.jsx)) and product detail ([`/products/:productId`](../src/features/products/pages/ProductDetailPage.jsx)). Filters, search, sort, and pagination are **URL-driven** via query params and backed by `GET /api/v1/products` — no filter state in Zustand.
 
 Legacy route `/products?id={productId}` redirects to `/products/{productId}`.
 
@@ -16,41 +16,42 @@ Legacy route `/products?id={productId}` redirects to `/products/{productId}`.
 | [`features/products/hooks/useProductDetail.js`](../src/features/products/hooks/useProductDetail.js) | Resolves product + related + breadcrumbs |
 | [`features/products/utils/productFilters.js`](../src/features/products/utils/productFilters.js) | Parse/serialize params, filter, sort, paginate |
 | [`features/products/utils/categoryTaxonomy.js`](../src/features/products/utils/categoryTaxonomy.js) | Category/sub/brand slug helpers |
-| [`features/products/data/productCatalog.js`](../src/features/products/data/productCatalog.js) | Central product list + lookup helpers |
+| [`features/products/api/`](../src/features/products/api/) | Catalog HTTP client, mappers, React Query hooks |
+| [`features/products/data/productCatalog.js`](../src/features/products/data/productCatalog.js) | Legacy mock catalog (PDP / related until wired) |
 | [`features/products/data/productDetailEnrichment.js`](../src/features/products/data/productDetailEnrichment.js) | Extra PDP fields (specs, reviews, images) |
 | [`shared/components/ProductCard.jsx`](../src/shared/components/ProductCard.jsx) | Shared card with cart/wishlist actions |
 | [`shared/components/ProductGallery.jsx`](../src/shared/components/ProductGallery.jsx) | Image gallery (PDP) |
 
 ## URL filter params
 
-Parsed by [`parseFilterParams()`](../src/features/products/utils/productFilters.js):
+Parsed by [`parseFilterParams()`](../src/features/products/utils/productFilters.js) and sent to `GET /api/v1/products`:
 
-| Param | Type | Example |
-| --- | --- | --- |
-| `category` | comma-separated slugs | `power-tools,hand-tools` |
-| `sub` | comma-separated slugs | `cordless-drills,angle-grinders` |
-| `brand` | comma-separated slugs | `forgepro,voltedge` |
-| `q` | search string | `drill` |
-| `min` / `max` | price range (INR) | `1000` / `50000` |
-| `ratingMin` | minimum rating | `4` |
-| `sort` | sort key | `price_asc`, `price_desc`, `rating`, `discount`, `relevance` |
-| `page` | page number (1-based) | `2` |
+| Param | Type | API field | Example |
+| --- | --- | --- | --- |
+| `group` | comma-separated group slugs | `cat_groups` (IDs) | `power-tools` |
+| `category` | comma-separated category slugs | `categories` (IDs) | `drills` |
+| `brand` | comma-separated brand slugs | `brands` (IDs) | `bosch` |
+| `q` | search string | `q` | `drill` |
+| `min` / `max` | price range | `min` / `max` | `1000` / `50000` |
+| `in_stock` | `1` when set | `in_stock` | `1` |
+| `sort` | sort key | `sort` | `price_low_to_high`, `price_high_to_low`, `new_arrival`, `relevance` |
+| `page` | page number (1-based) | `page` | `2` |
+| `per_page` | optional | `per_page` (max 50) | default **24** |
 
-Page size is fixed at **24** (`PAGE_SIZE` in `productFilters.js`).
-
-[`useProductFilters`](../src/features/products/hooks/useProductFilters.js) reads `useSearchParams`, filters the in-memory catalog, and writes back via `setSearchParams`. Sidebar filters apply immediately; mobile drawer uses draft state until "Apply".
+[`useProductFilters`](../src/features/products/hooks/useProductFilters.js) keeps filters in the URL, loads brands/category-groups from the API, resolves slugs→IDs, and fetches the product page with React Query. Facet counts come from the products response. Sidebar filters apply immediately; mobile drawer uses draft state until "Apply".
 
 ## Product shape (listing)
 
-Core fields from [`productCatalog.js`](../src/features/products/data/productCatalog.js):
+Mapped from `ProductListResource` for [`ProductCard`](../src/shared/components/ProductCard.jsx):
 
 ```js
 {
   id, title, imageUrl,
-  rating, reviewCount,
-  currentPrice, originalPrice, discountPercentage,
-  categorySlug, subCategorySlug, brandSlug,
-  href,  // computed: /products/{id}
+  rating: 0, reviewCount: 0, // not on list API yet
+  currentPrice, // unit_price
+  originalPrice, // mrp ?? list_price
+  discountPercentage,
+  inStock, slug, brandSlug, categorySlug, groupSlug,
 }
 ```
 

@@ -421,4 +421,3 @@ export function getFilterFacets(products, filters) {
   }
 }
 
-export { filterAndSortProducts, paginateProducts } from '../utils/productFilters.js'

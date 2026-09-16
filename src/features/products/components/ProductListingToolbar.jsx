@@ -8,6 +8,7 @@ import { SORT_OPTIONS } from '../utils/productFilters'
  *   onSortChange: (value: string) => void,
  *   onOpenFilters: () => void,
  *   activeFilterCount: number,
+ *   isFetching?: boolean,
  * }} props
  */
 export default function ProductListingToolbar({
@@ -16,12 +17,16 @@ export default function ProductListingToolbar({
   onSortChange,
   onOpenFilters,
   activeFilterCount,
+  isFetching = false,
 }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <p className="text-sm text-ink-muted">
         <span className="font-semibold text-ink">{resultCount}</span>{' '}
         {resultCount === 1 ? 'product' : 'products'}
+        {isFetching ? (
+          <span className="ml-2 text-xs text-ink-muted">Updating…</span>
+        ) : null}
       </p>
 
       <div className="flex items-center gap-2">

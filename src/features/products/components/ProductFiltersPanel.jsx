@@ -1,19 +1,15 @@
-import { useEffect, useId, useRef, useState } from 'react'
-import { FiArrowLeft, FiSearch } from 'react-icons/fi'
 import FilterAccordionSection from './FilterAccordionSection'
 import FilterOptionsPicker from './FilterOptionsPicker'
-import { countProductsForFacet } from '../utils/productFilters'
 
 /**
  * @param {{
  *   filters: import('../utils/productFilters.js').ProductFilterParams,
- *   categories: Array<{ slug: string, label: string }>,
- *   subCategories: Array<{ slug: string, label: string }>,
- *   brands: Array<{ slug: string, label: string }>,
- *   facets: { priceMin: number, priceMax: number },
- *   allProducts: Array<object>,
+ *   groups: Array<{ slug: string, label: string, count?: number | null }>,
+ *   categories: Array<{ slug: string, label: string, count?: number | null }>,
+ *   brands: Array<{ slug: string, label: string, count?: number | null }>,
+ *   facets: { priceMin: number | null, priceMax: number | null },
  *   onToggle: (key: string, slug: string) => void,
- *   onScalarChange: (key: string, value: string | number | null) => void,
+ *   onScalarChange: (key: string, value: string | number | boolean | null) => void,
  *   onClearAll: () => void,
  *   idPrefix?: string,
  *   pickerVariant?: 'modal' | 'panel',
@@ -21,11 +17,10 @@ import { countProductsForFacet } from '../utils/productFilters'
  */
 export default function ProductFiltersPanel({
   filters,
+  groups,
   categories,
-  subCategories,
   brands,
   facets,
-  allProducts,
   onToggle,
   onScalarChange,
   onClearAll,
@@ -33,24 +28,23 @@ export default function ProductFiltersPanel({
   pickerVariant = 'modal',
 }) {
   const priceActive = filters.min != null || filters.max != null
-  const ratingActive = filters.ratingMin != null
 
   const brandItems = brands.map((brand) => ({
     slug: brand.slug,
     label: brand.label,
-    count: countProductsForFacet(allProducts, filters, 'brands', brand.slug),
+    count: brand.count,
+  }))
+
+  const groupItems = groups.map((group) => ({
+    slug: group.slug,
+    label: group.label,
+    count: group.count,
   }))
 
   const categoryItems = categories.map((cat) => ({
     slug: cat.slug,
     label: cat.label,
-    count: countProductsForFacet(allProducts, filters, 'categories', cat.slug),
-  }))
-
-  const subCategoryItems = subCategories.map((sub) => ({
-    slug: sub.slug,
-    label: sub.label,
-    count: countProductsForFacet(allProducts, filters, 'subs', sub.slug),
+    count: cat.count,
   }))
 
   return (
@@ -65,7 +59,9 @@ export default function ProductFiltersPanel({
           <input
             type="number"
             min={0}
-            placeholder={`Min (${facets.priceMin})`}
+            placeholder={
+              facets.priceMin != null ? `Min (${facets.priceMin})` : 'Min'
+            }
             value={filters.min ?? ''}
             onChange={(e) =>
               onScalarChange('min', e.target.value ? Number(e.target.value) : null)
@@ -76,7 +72,9 @@ export default function ProductFiltersPanel({
           <input
             type="number"
             min={0}
-            placeholder={`Max (${facets.priceMax})`}
+            placeholder={
+              facets.priceMax != null ? `Max (${facets.priceMax})` : 'Max'
+            }
             value={filters.max ?? ''}
             onChange={(e) =>
               onScalarChange('max', e.target.value ? Number(e.target.value) : null)
@@ -84,6 +82,25 @@ export default function ProductFiltersPanel({
             className="w-full rounded-md border border-border bg-surface px-2.5 py-2 text-sm text-ink outline-none focus:border-brand"
           />
         </div>
+      </FilterAccordionSection>
+
+      <FilterAccordionSection
+        title="Availability"
+        id={`${idPrefix}-stock`}
+        activeCount={filters.inStock ? 1 : 0}
+        defaultOpen={filters.inStock}
+      >
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-ink">
+          <input
+            type="checkbox"
+            checked={Boolean(filters.inStock)}
+            onChange={(e) => onScalarChange('inStock', e.target.checked)}
+            className="size-4 shrink-0 rounded accent-brand"
+          />
+          <span className={filters.inStock ? 'font-medium text-brand' : undefined}>
+            In stock only
+          </span>
+        </label>
       </FilterAccordionSection>
 
       <FilterAccordionSection
@@ -102,51 +119,31 @@ export default function ProductFiltersPanel({
       </FilterAccordionSection>
 
       <FilterAccordionSection
-        title="Rating"
-        id={`${idPrefix}-rating`}
-        activeCount={ratingActive ? 1 : 0}
-        defaultOpen={ratingActive}
-      >
-        <ul className="space-y-2">
-          {[null, 4, 3].map((min) => (
-            <li key={min ?? 'all'}>
-              <FilterRadio
-                name={`${idPrefix}-rating`}
-                checked={(filters.ratingMin ?? null) === min}
-                onChange={() => onScalarChange('ratingMin', min)}
-                label={min ? `${min}+ stars` : 'All ratings'}
-              />
-            </li>
-          ))}
-        </ul>
-      </FilterAccordionSection>
-
-      <FilterAccordionSection
-        title="Category"
-        id={`${idPrefix}-category`}
-        activeCount={filters.categories.length}
+        title="Category group"
+        id={`${idPrefix}-group`}
+        activeCount={filters.groups.length}
       >
         <FilterOptionsPicker
-          title="All categories"
-          items={categoryItems}
-          selected={filters.categories}
-          onToggle={(slug) => onToggle('categories', slug)}
+          title="All groups"
+          items={groupItems}
+          selected={filters.groups}
+          onToggle={(slug) => onToggle('groups', slug)}
           variant={pickerVariant}
           renderCheckbox={(props) => <FilterCheckbox {...props} />}
         />
       </FilterAccordionSection>
 
-      {subCategories.length > 0 ? (
+      {categoryItems.length > 0 ? (
         <FilterAccordionSection
-          title="Sub-category"
-          id={`${idPrefix}-sub`}
-          activeCount={filters.subs.length}
+          title="Category"
+          id={`${idPrefix}-category`}
+          activeCount={filters.categories.length}
         >
           <FilterOptionsPicker
-            title="All sub-categories"
-            items={subCategoryItems}
-            selected={filters.subs}
-            onToggle={(slug) => onToggle('subs', slug)}
+            title="All categories"
+            items={categoryItems}
+            selected={filters.categories}
+            onToggle={(slug) => onToggle('categories', slug)}
             variant={pickerVariant}
             renderCheckbox={(props) => <FilterCheckbox {...props} />}
           />
@@ -177,21 +174,6 @@ function FilterCheckbox({ checked, onChange, label, count }) {
       {count != null ? (
         <span className="ml-auto text-xs text-ink-muted">({count})</span>
       ) : null}
-    </label>
-  )
-}
-
-function FilterRadio({ name, checked, onChange, label }) {
-  return (
-    <label className="flex cursor-pointer items-center gap-2 text-sm text-ink">
-      <input
-        type="radio"
-        name={name}
-        checked={checked}
-        onChange={onChange}
-        className="size-4 accent-brand"
-      />
-      <span className={checked ? 'font-medium text-brand' : undefined}>{label}</span>
     </label>
   )
 }

@@ -8,14 +8,13 @@ import ProductFiltersPanel from './ProductFiltersPanel'
  *   onClose: () => void,
  *   draftFilters: import('../utils/productFilters.js').ProductFilterParams,
  *   onToggle: (key: string, slug: string) => void,
- *   onScalarChange: (key: string, value: string | number | null) => void,
+ *   onScalarChange: (key: string, value: string | number | boolean | null) => void,
  *   onApply: () => void,
  *   onClearAll: () => void,
- *   categories: Array<{ slug: string, label: string }>,
- *   subCategories: Array<{ slug: string, label: string }>,
- *   brands: Array<{ slug: string, label: string }>,
- *   facets: { priceMin: number, priceMax: number },
- *   allProducts: Array<object>,
+ *   groups: Array<{ slug: string, label: string, count?: number | null }>,
+ *   categories: Array<{ slug: string, label: string, count?: number | null }>,
+ *   brands: Array<{ slug: string, label: string, count?: number | null }>,
+ *   facets: { priceMin: number | null, priceMax: number | null },
  * }} props
  */
 export default function ProductFiltersDrawer({
@@ -26,11 +25,10 @@ export default function ProductFiltersDrawer({
   onScalarChange,
   onApply,
   onClearAll,
+  groups,
   categories,
-  subCategories,
   brands,
   facets,
-  allProducts,
 }) {
   useEffect(() => {
     if (!open) return undefined
@@ -56,21 +54,20 @@ export default function ProductFiltersDrawer({
           <button
             type="button"
             onClick={onClose}
-            className="flex size-9 items-center justify-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink"
+            className="rounded-md p-1.5 text-ink-muted transition hover:bg-surface-muted hover:text-ink"
             aria-label="Close"
           >
             <FiX className="size-5" />
           </button>
         </div>
 
-        <div className="relative flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto px-4 py-3">
           <ProductFiltersPanel
             filters={draftFilters}
+            groups={groups}
             categories={categories}
-            subCategories={subCategories}
             brands={brands}
             facets={facets}
-            allProducts={allProducts}
             onToggle={onToggle}
             onScalarChange={onScalarChange}
             onClearAll={onClearAll}
@@ -79,20 +76,13 @@ export default function ProductFiltersDrawer({
           />
         </div>
 
-        <div className="flex gap-2 border-t border-border p-4">
-          <button
-            type="button"
-            onClick={onClearAll}
-            className="flex-1 rounded-md border border-border py-2.5 text-sm font-semibold text-ink-muted"
-          >
-            Clear all
-          </button>
+        <div className="border-t border-border p-4">
           <button
             type="button"
             onClick={onApply}
-            className="flex-1 rounded-md bg-brand py-2.5 text-sm font-bold text-ink-inverse"
+            className="w-full rounded-md bg-highlight px-4 py-2.5 text-sm font-bold text-cta-foreground transition hover:bg-highlight-dark"
           >
-            Apply
+            Apply filters
           </button>
         </div>
       </div>

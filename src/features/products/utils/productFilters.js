@@ -1,292 +1,230 @@
-import {
-  normalizeFilterParams,
-  getCategoryLabel,
-  getAllBrandOptions,
-  resolveSlug,
-  topLevelSlugs,
-} from './categoryTaxonomy'
+/**
+ * URL ↔ filter state for the centralized products page.
+ * Listing data comes from the Catalog API; this module only owns query-string shape.
+ */
+
+export const PAGE_SIZE = 24
 
 export const SORT_OPTIONS = [
+  { value: 'new_arrival', label: 'Newest' },
+  { value: 'price_low_to_high', label: 'Price: Low to High' },
+  { value: 'price_high_to_low', label: 'Price: High to Low' },
   { value: 'relevance', label: 'Relevance' },
-  { value: 'price_asc', label: 'Price: Low to High' },
-  { value: 'price_desc', label: 'Price: High to Low' },
-  { value: 'rating', label: 'Customer Rating' },
-  { value: 'discount', label: 'Discount %' },
 ]
-
-const PAGE_SIZE = 24
 
 /**
  * @typedef {Object} ProductFilterParams
- * @property {string[]} categories
- * @property {string[]} subs
- * @property {string[]} brands
+ * @property {string[]} groups - category group slugs → API cat_groups
+ * @property {string[]} categories - category slugs → API categories
+ * @property {string[]} brands - brand slugs → API brands
  * @property {string | null} q
  * @property {number | null} min
  * @property {number | null} max
- * @property {number | null} ratingMin
+ * @property {boolean} inStock
  * @property {string} sort
  * @property {number} page
+ * @property {number} perPage
  */
 
-/**
- * @param {string | null | undefined} value
- * @returns {string[]}
- */
+/** @param {string | null | undefined} value @returns {string[]} */
 export function parseListParam(value) {
   if (!value?.trim()) return []
   return [...new Set(value.split(',').map((s) => s.trim()).filter(Boolean))]
 }
 
-/**
- * @param {string[]} values
- * @returns {string | null}
- */
+/** @param {string[]} values */
 export function serializeListParam(values) {
-  if (!values?.length) return null
-  return [...new Set(values)].join(',')
+  return values.filter(Boolean).join(',')
 }
 
 /**
- * Parse legacy single or multi category/sub params into arrays.
- * @param {string | null} rawCategory
- * @param {string | null} rawSub
+ * @param {string | null | undefined} raw
+ * @returns {number | null}
  */
-function parseCategorySubParams(rawCategory, rawSub) {
-  /** @type {string[]} */
-  let categories = []
-  let subs = parseListParam(rawSub)
-
-  for (const slug of parseListParam(rawCategory)) {
-    if (topLevelSlugs.has(slug)) {
-      if (!categories.includes(slug)) categories.push(slug)
-    } else {
-      const normalized = normalizeFilterParams({ category: slug, sub: null })
-      if (normalized.category && !categories.includes(normalized.category)) {
-        categories.push(normalized.category)
-      }
-      if (normalized.sub && !subs.includes(normalized.sub)) {
-        subs.push(normalized.sub)
-      }
-    }
-  }
-
-  if (subs.length && categories.length === 0) {
-    for (const sub of subs) {
-      const normalized = normalizeFilterParams({ category: null, sub })
-      if (normalized.category && !categories.includes(normalized.category)) {
-        categories.push(normalized.category)
-      }
-    }
-  }
-
-  return { categories, subs }
+export function parseNonNegNumber(raw) {
+  if (raw == null || String(raw).trim() === '') return null
+  const n = Number(raw)
+  if (!Number.isFinite(n) || n < 0) return null
+  return n
 }
 
 /**
- * Parse URLSearchParams into normalized filter state.
+ * Normalize min/max so we never send NaN or max < min to the API.
+ * @param {number | null} min
+ * @param {number | null} max
+ * @returns {{ min: number | null, max: number | null }}
+ */
+export function normalizePriceRange(min, max) {
+  let nextMin = min != null && Number.isFinite(min) && min >= 0 ? min : null
+  let nextMax = max != null && Number.isFinite(max) && max >= 0 ? max : null
+  if (nextMin != null && nextMax != null && nextMax < nextMin) {
+    // Swap so the range stays usable instead of 422ing.
+    const tmp = nextMin
+    nextMin = nextMax
+    nextMax = tmp
+  }
+  return { min: nextMin, max: nextMax }
+}
+
+/**
+ * Categories available for the selected groups (or all if none selected).
+ * @param {Array<{ slug: string, categories?: Array<{ slug: string, label: string, id?: number }> }>} groups
+ * @param {string[]} groupSlugs
+ * @param {Map<number, number> | null} [countById]
+ */
+export function categoriesForGroups(groups, groupSlugs, countById = null) {
+  const selected = groupSlugs ?? []
+  const source =
+    selected.length === 0
+      ? groups.flatMap((g) => g.categories ?? [])
+      : groups
+          .filter((g) => selected.includes(g.slug))
+          .flatMap((g) => g.categories ?? [])
+
+  const seen = new Set()
+  const list = []
+  for (const cat of source) {
+    if (!cat?.slug || seen.has(cat.slug)) continue
+    seen.add(cat.slug)
+    list.push({
+      slug: cat.slug,
+      label: cat.label ?? cat.slug,
+      id: cat.id,
+      count:
+        countById && cat.id != null ? (countById.get(Number(cat.id)) ?? null) : null,
+    })
+  }
+  return list
+}
+
+const LEGACY_SORT = {
+  price_asc: 'price_low_to_high',
+  price_desc: 'price_high_to_low',
+  rating: 'new_arrival',
+  discount: 'new_arrival',
+}
+
+/**
  * @param {URLSearchParams} searchParams
  * @returns {ProductFilterParams}
  */
 export function parseFilterParams(searchParams) {
-  const rawCategory = searchParams.get('category')
-  const rawSub = searchParams.get('sub')
-  const { categories, subs } = parseCategorySubParams(rawCategory, rawSub)
-
   const minRaw = searchParams.get('min')
   const maxRaw = searchParams.get('max')
-  const ratingRaw = searchParams.get('ratingMin')
   const pageRaw = searchParams.get('page')
+  const perPageRaw = searchParams.get('per_page')
+
+  // Prefer new keys; fall back to legacy category/sub/brand URL shape.
+  const groups = parseListParam(
+    searchParams.get('group') || searchParams.get('cat_group'),
+  )
+  let categories = parseListParam(searchParams.get('category'))
+  // Legacy: `sub` meant subcategory — map into categories when present.
+  const legacySubs = parseListParam(searchParams.get('sub'))
+  if (legacySubs.length && !searchParams.get('category')) {
+    categories = legacySubs
+  } else if (legacySubs.length) {
+    categories = [...new Set([...categories, ...legacySubs])]
+  }
+
+  // If only legacy top-level `category` was used as a group-like slug and
+  // `group` is empty, keep it as categories (API categories), which is closest.
+  const brands = parseListParam(searchParams.get('brand'))
+
+  let sort = searchParams.get('sort') || 'new_arrival'
+  if (LEGACY_SORT[sort]) sort = LEGACY_SORT[sort]
+
+  const perPage = perPageRaw
+    ? Math.min(50, Math.max(1, Number(perPageRaw)))
+    : PAGE_SIZE
+
+  const { min, max } = normalizePriceRange(
+    parseNonNegNumber(minRaw),
+    parseNonNegNumber(maxRaw),
+  )
+
+  const pageNum = pageRaw ? Number(pageRaw) : 1
 
   return {
+    groups,
     categories,
-    subs,
-    brands: parseListParam(searchParams.get('brand')),
+    brands,
     q: searchParams.get('q')?.trim() || null,
-    min: minRaw ? Number(minRaw) : null,
-    max: maxRaw ? Number(maxRaw) : null,
-    ratingMin: ratingRaw ? Number(ratingRaw) : null,
-    sort: searchParams.get('sort') || 'relevance',
-    page: pageRaw ? Math.max(1, Number(pageRaw)) : 1,
+    min,
+    max,
+    inStock:
+      searchParams.get('in_stock') === '1' ||
+      searchParams.get('in_stock') === 'true',
+    sort,
+    page: Number.isFinite(pageNum) && pageNum >= 1 ? Math.floor(pageNum) : 1,
+    perPage: Number.isFinite(perPage) ? perPage : PAGE_SIZE,
   }
 }
 
 /**
- * Build URLSearchParams from filter state (omit defaults).
  * @param {Partial<ProductFilterParams>} filters
  */
 export function buildFilterSearchParams(filters) {
   const params = new URLSearchParams()
 
+  const groupStr = serializeListParam(filters.groups ?? [])
   const categoryStr = serializeListParam(filters.categories ?? [])
-  const subStr = serializeListParam(filters.subs ?? [])
   const brandStr = serializeListParam(filters.brands ?? [])
 
+  if (groupStr) params.set('group', groupStr)
   if (categoryStr) params.set('category', categoryStr)
-  if (subStr) params.set('sub', subStr)
   if (brandStr) params.set('brand', brandStr)
   if (filters.q) params.set('q', filters.q)
-  if (filters.min != null && filters.min > 0) params.set('min', String(filters.min))
-  if (filters.max != null && filters.max > 0) params.set('max', String(filters.max))
-  if (filters.ratingMin != null && filters.ratingMin > 0) {
-    params.set('ratingMin', String(filters.ratingMin))
-  }
-  if (filters.sort && filters.sort !== 'relevance') params.set('sort', filters.sort)
+  const { min, max } = normalizePriceRange(
+    filters.min ?? null,
+    filters.max ?? null,
+  )
+  if (min != null && min > 0) params.set('min', String(min))
+  if (max != null && max > 0) params.set('max', String(max))
+  if (filters.inStock) params.set('in_stock', '1')
+  if (filters.sort && filters.sort !== 'new_arrival') params.set('sort', filters.sort)
   if (filters.page && filters.page > 1) params.set('page', String(filters.page))
+  if (filters.perPage && filters.perPage !== PAGE_SIZE) {
+    params.set('per_page', String(filters.perPage))
+  }
 
   return params
 }
 
-function relevanceScore(product, filters) {
-  let score = 0
-  if (filters.q) {
-    const q = filters.q.toLowerCase()
-    if (product.title.toLowerCase().includes(q)) score += 10
-    if (product.brandSlug?.includes(q)) score += 5
-  }
-  if (filters.subs.length && filters.subs.includes(product.subCategorySlug)) score += 8
-  if (filters.categories.length && filters.categories.includes(product.categorySlug)) score += 4
-  if (filters.brands.length && filters.brands.includes(product.brandSlug)) score += 6
-  return score
-}
-
-/**
- * @param {Array} products
- * @param {ProductFilterParams} filters
- */
-export function filterAndSortProducts(products, filters) {
-  let result = [...products]
-
-  if (filters.categories.length) {
-    result = result.filter((p) => filters.categories.includes(p.categorySlug))
-  }
-  if (filters.subs.length) {
-    result = result.filter((p) => filters.subs.includes(p.subCategorySlug))
-  }
-  if (filters.brands.length) {
-    result = result.filter((p) => filters.brands.includes(p.brandSlug))
-  }
-  if (filters.q) {
-    const q = filters.q.toLowerCase()
-    result = result.filter(
-      (p) =>
-        p.title.toLowerCase().includes(q) ||
-        p.brandSlug?.includes(q) ||
-        p.subCategorySlug?.includes(q),
-    )
-  }
-  if (filters.min != null && filters.min > 0) {
-    result = result.filter((p) => p.currentPrice >= filters.min)
-  }
-  if (filters.max != null && filters.max > 0) {
-    result = result.filter((p) => p.currentPrice <= filters.max)
-  }
-  if (filters.ratingMin != null && filters.ratingMin > 0) {
-    result = result.filter((p) => p.rating >= filters.ratingMin)
-  }
-
-  switch (filters.sort) {
-    case 'price_asc':
-      result.sort((a, b) => a.currentPrice - b.currentPrice)
-      break
-    case 'price_desc':
-      result.sort((a, b) => b.currentPrice - a.currentPrice)
-      break
-    case 'rating':
-      result.sort((a, b) => b.rating - a.rating || b.reviewCount - a.reviewCount)
-      break
-    case 'discount':
-      result.sort((a, b) => b.discountPercentage - a.discountPercentage)
-      break
-    default:
-      result.sort((a, b) => relevanceScore(b, filters) - relevanceScore(a, filters))
-  }
-
-  return result
-}
-
-/**
- * @param {Array} products
- * @param {ProductFilterParams} filters
- */
-export function paginateProducts(products, filters) {
-  const page = filters.page || 1
-  const total = products.length
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
-  const safePage = Math.min(page, totalPages)
-  const start = (safePage - 1) * PAGE_SIZE
-
-  return {
-    items: products.slice(start, start + PAGE_SIZE),
-    total,
-    page: safePage,
-    pageSize: PAGE_SIZE,
-    totalPages,
-    startIndex: total === 0 ? 0 : start + 1,
-    endIndex: Math.min(start + PAGE_SIZE, total),
-  }
-}
-
-/**
- * @param {Array} allProducts
- * @param {ProductFilterParams} filters
- */
-export function getFilterFacets(allProducts, filters) {
-  void filters
-  return {
-    priceMin: Math.min(...allProducts.map((p) => p.currentPrice)),
-    priceMax: Math.max(...allProducts.map((p) => p.currentPrice)),
-  }
-}
-
-/**
- * Count products matching a single facet value given other active filters.
- * @param {Array} allProducts
- * @param {ProductFilterParams} filters
- * @param {'categories' | 'subs' | 'brands'} groupKey
- * @param {string} slug
- */
-export function countProductsForFacet(allProducts, filters, groupKey, slug) {
-  const trial = { ...filters }
-  if (groupKey === 'categories') {
-    trial.categories = [slug]
-    trial.subs = []
-  } else if (groupKey === 'subs') {
-    trial.subs = [slug]
-  } else {
-    trial.brands = [slug]
-  }
-  return filterAndSortProducts(allProducts, trial).length
+/** @param {string[]} list @param {string} slug */
+export function toggleListValue(list, slug) {
+  return list.includes(slug) ? list.filter((s) => s !== slug) : [...list, slug]
 }
 
 /**
  * @param {ProductFilterParams} filters
+ * @param {{
+ *   groups?: Array<{ slug: string, label: string }>,
+ *   categories?: Array<{ slug: string, label: string }>,
+ *   brands?: Array<{ slug: string, label: string }>,
+ * }} labels
  */
-export function buildActiveFilters(filters) {
+export function buildActiveFilters(filters, labels = {}) {
   /** @type {Array<{ key: string, label: string, value: string }>} */
   const active = []
+  const groupLabel = Object.fromEntries((labels.groups ?? []).map((g) => [g.slug, g.label]))
+  const categoryLabel = Object.fromEntries(
+    (labels.categories ?? []).map((c) => [c.slug, c.label]),
+  )
+  const brandLabel = Object.fromEntries((labels.brands ?? []).map((b) => [b.slug, b.label]))
 
-  for (const slug of filters.categories) {
+  for (const slug of filters.groups ?? []) {
+    active.push({ key: 'groups', label: groupLabel[slug] ?? slug, value: slug })
+  }
+  for (const slug of filters.categories ?? []) {
     active.push({
       key: 'categories',
-      label: getCategoryLabel(slug),
+      label: categoryLabel[slug] ?? slug,
       value: slug,
     })
   }
-  for (const slug of filters.subs) {
-    active.push({
-      key: 'subs',
-      label: getCategoryLabel(slug),
-      value: slug,
-    })
-  }
-  for (const slug of filters.brands) {
-    const brand = getAllBrandOptions().find((b) => b.slug === slug)
-    active.push({
-      key: 'brands',
-      label: brand?.label ?? slug,
-      value: slug,
-    })
+  for (const slug of filters.brands ?? []) {
+    active.push({ key: 'brands', label: brandLabel[slug] ?? slug, value: slug })
   }
   if (filters.q) {
     active.push({ key: 'q', label: `"${filters.q}"`, value: filters.q })
@@ -297,12 +235,8 @@ export function buildActiveFilters(filters) {
   if (filters.max != null && filters.max > 0) {
     active.push({ key: 'max', label: `Max ₹${filters.max}`, value: String(filters.max) })
   }
-  if (filters.ratingMin != null && filters.ratingMin > 0) {
-    active.push({
-      key: 'ratingMin',
-      label: `${filters.ratingMin}+ stars`,
-      value: String(filters.ratingMin),
-    })
+  if (filters.inStock) {
+    active.push({ key: 'inStock', label: 'In stock', value: '1' })
   }
 
   return active
@@ -310,84 +244,90 @@ export function buildActiveFilters(filters) {
 
 /**
  * @param {ProductFilterParams} filters
+ * @param {{
+ *   groups?: Array<{ slug: string, label: string }>,
+ *   categories?: Array<{ slug: string, label: string }>,
+ *   brands?: Array<{ slug: string, label: string }>,
+ * }} labels
  */
-export function buildPageTitle(filters) {
+export function buildPageTitle(filters, labels = {}) {
   if (filters.q) return `Results for "${filters.q}"`
-  if (filters.subs.length === 1 && filters.categories.length <= 1) {
-    return getCategoryLabel(filters.subs[0])
+  const groupLabel = Object.fromEntries((labels.groups ?? []).map((g) => [g.slug, g.label]))
+  const categoryLabel = Object.fromEntries(
+    (labels.categories ?? []).map((c) => [c.slug, c.label]),
+  )
+  const brandLabel = Object.fromEntries((labels.brands ?? []).map((b) => [b.slug, b.label]))
+
+  if ((filters.categories ?? []).length === 1) {
+    return categoryLabel[filters.categories[0]] ?? 'Products'
   }
-  if (filters.categories.length === 1 && filters.subs.length === 0) {
-    return getCategoryLabel(filters.categories[0])
+  if ((filters.groups ?? []).length === 1 && !(filters.categories ?? []).length) {
+    return groupLabel[filters.groups[0]] ?? 'Products'
   }
-  if (filters.categories.length > 1) {
-    return `${getCategoryLabel(filters.categories[0])} + ${filters.categories.length - 1} more`
-  }
-  if (filters.brands.length === 1) {
-    const brand = getAllBrandOptions().find((b) => b.slug === filters.brands[0])
-    return brand?.label ?? 'Products'
+  if ((filters.brands ?? []).length === 1) {
+    return brandLabel[filters.brands[0]] ?? 'Products'
   }
   return 'All Products'
 }
 
 /**
  * @param {ProductFilterParams} filters
+ * @param {{
+ *   groups?: Array<{ slug: string, label: string }>,
+ *   categories?: Array<{ slug: string, label: string }>,
+ *   brands?: Array<{ slug: string, label: string }>,
+ * }} labels
  */
-export function buildBreadcrumbs(filters) {
+export function buildBreadcrumbs(filters, labels = {}) {
   /** @type {Array<{ label: string, href?: string }>} */
   const items = [{ label: 'Home', href: '/' }]
+  const groupLabel = Object.fromEntries((labels.groups ?? []).map((g) => [g.slug, g.label]))
+  const categoryLabel = Object.fromEntries(
+    (labels.categories ?? []).map((c) => [c.slug, c.label]),
+  )
+  const brandLabel = Object.fromEntries((labels.brands ?? []).map((b) => [b.slug, b.label]))
 
-  const hasMultiCategory = filters.categories.length > 1 || filters.subs.length > 1
-  const hasSingleCategoryPath =
-    filters.categories.length === 1 && filters.subs.length <= 1
-  const hasSearchOrBrandOnly =
-    !filters.categories.length &&
-    !filters.subs.length &&
-    Boolean(filters.q || filters.brands.length)
+  const hasFilters =
+    (filters.groups ?? []).length ||
+    (filters.categories ?? []).length ||
+    (filters.brands ?? []).length ||
+    filters.q
 
-  if (!filters.categories.length && !filters.subs.length && !filters.q && !filters.brands.length) {
+  if (!hasFilters) {
     items.push({ label: 'Products' })
-    return items
-  }
-
-  if (hasSingleCategoryPath && !hasMultiCategory) {
-    const category = filters.categories[0]
-    const sub = filters.subs[0]
-    if (category) {
-      const hasBrowse = category === 'power-tools'
-      items.push({
-        label: getCategoryLabel(category),
-        href: hasBrowse ? `/category/${category}` : undefined,
-      })
-    }
-    if (sub) {
-      const hasBrowse = category === 'power-tools' && sub === 'cordless-drills'
-      items.push({
-        label: getCategoryLabel(sub),
-        href: hasBrowse ? `/category/${category}/${sub}` : undefined,
-      })
-    } else if (category) {
-      items[items.length - 1] = { label: getCategoryLabel(category) }
-    }
     return items
   }
 
   items.push({ label: 'Products', href: '/products' })
 
-  if (hasSearchOrBrandOnly) {
-    if (filters.brands.length === 1) {
-      const brand = getAllBrandOptions().find((b) => b.slug === filters.brands[0])
-      items.push({ label: brand?.label ?? filters.brands[0] })
-    } else if (filters.q) {
-      items.push({ label: `Search: ${filters.q}` })
-    }
+  if ((filters.groups ?? []).length === 1) {
+    items.push({ label: groupLabel[filters.groups[0]] ?? filters.groups[0] })
+  }
+  if ((filters.categories ?? []).length === 1) {
+    items.push({
+      label: categoryLabel[filters.categories[0]] ?? filters.categories[0],
+    })
+  } else if ((filters.brands ?? []).length === 1 && !filters.q) {
+    items.push({ label: brandLabel[filters.brands[0]] ?? filters.brands[0] })
+  } else if (filters.q) {
+    items.push({ label: `Search: ${filters.q}` })
   }
 
   return items
 }
 
-/** @param {string[]} list @param {string} slug */
-export function toggleListValue(list, slug) {
-  return list.includes(slug) ? list.filter((s) => s !== slug) : [...list, slug]
+/**
+ * Prune category slugs that no longer belong to selected groups.
+ * @param {string[]} categorySlugs
+ * @param {string[]} groupSlugs
+ * @param {Array<{ slug: string, categories: Array<{ slug: string }> }>} groups
+ */
+export function pruneCategoriesForGroups(categorySlugs, groupSlugs, groups) {
+  if (!groupSlugs.length) return categorySlugs
+  const allowed = new Set()
+  for (const group of groups) {
+    if (!groupSlugs.includes(group.slug)) continue
+    for (const cat of group.categories ?? []) allowed.add(cat.slug)
+  }
+  return categorySlugs.filter((slug) => allowed.has(slug))
 }
-
-export { PAGE_SIZE }
