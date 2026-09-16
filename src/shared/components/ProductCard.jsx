@@ -87,7 +87,10 @@ export default function ProductCard({
 
       <div className="flex flex-1 flex-col gap-2 p-3">
         <Link to={productHref} className="block">
-          <h3 className="line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-tight text-ink transition group-hover:text-brand">
+          <h3
+            title={title}
+            className="h-10 overflow-hidden text-sm font-semibold leading-5 text-ink line-clamp-2 transition group-hover:text-brand"
+          >
             {title}
           </h3>
         </Link>

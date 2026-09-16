@@ -2,6 +2,12 @@
 
 export const API_MAX_PER_PAGE = 50
 
+/** Soft target page size; rounded up to a live column multiple. */
+export const TARGET_PAGE_SIZE = 30
+
+/** Never fewer than this many full rows on a full page. */
+export const MIN_ROWS = 5
+
 /** Matches `minmax(11.5rem, 1fr)` + `gap-2.5` below `sm`. */
 export const GRID_MIN_CARD_PX = 184
 export const GRID_GAP_PX = 10
@@ -10,7 +16,7 @@ export const GRID_GAP_PX = 10
 export const GRID_MIN_CARD_SM_PX = 208
 export const GRID_GAP_SM_PX = 12
 
-/** Rough ProductCard block height for row estimates (image + title + price + CTAs). */
+/** Rough ProductCard block height for optional taller-viewport growth. */
 export const EST_CARD_HEIGHT_PX = 340
 
 /** Tailwind classes kept in sync with the minmax values above. */
@@ -29,8 +35,9 @@ export function columnsForWidth(widthPx, isSmUp) {
 }
 
 /**
- * Page size = columns × rows that fit the viewport height, capped at API max,
- * always a multiple of the live column count.
+ * Page size is always a multiple of the live column count (≤ API max).
+ * Uses a ~30-item target and a min of 5 rows so we fill full rows without
+ * shrinking to "above the fold" only; taller viewports can grow a bit more.
  *
  * @param {{ columns: number, availableHeightPx: number }} args
  */
@@ -38,11 +45,12 @@ export function pageSizeForViewport({ columns, availableHeightPx }) {
   const cols = Math.max(1, columns || 1)
   const gap = GRID_GAP_SM_PX
   const height = Number.isFinite(availableHeightPx) ? availableHeightPx : 800
-  const rowsFromHeight = Math.max(
-    2,
-    Math.floor((height + gap) / (EST_CARD_HEIGHT_PX + gap)),
-  )
+  const rowsFromHeight = Math.floor((height + gap) / (EST_CARD_HEIGHT_PX + gap))
+  const rowsFromTarget = Math.ceil(TARGET_PAGE_SIZE / cols)
   const maxRows = Math.max(1, Math.floor(API_MAX_PER_PAGE / cols))
-  const rows = Math.min(rowsFromHeight, maxRows)
+  const rows = Math.min(
+    maxRows,
+    Math.max(MIN_ROWS, rowsFromTarget, rowsFromHeight),
+  )
   return cols * rows
 }
