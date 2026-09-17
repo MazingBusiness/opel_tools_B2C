@@ -1,6 +1,6 @@
 import { apiClient } from '../../../shared/api/client'
 import { CATALOG_ENDPOINTS } from './endpoints'
-import { mapProductsIndexResponse } from './mappers'
+import { mapProductDetail, mapProductsIndexResponse } from './mappers'
 import { normalizePriceRange } from '../utils/productFilters'
 
 /**
@@ -120,4 +120,32 @@ export function normalizeApiSort(sort) {
   }
   if (!sort) return null
   return Object.prototype.hasOwnProperty.call(map, sort) ? map[sort] : null
+}
+
+
+/**
+ * GET /api/v1/products/:idOrSlug → PDP view model.
+ * @param {string | number} idOrSlug
+ */
+export async function fetchProduct(idOrSlug) {
+  const { data } = await apiClient.get(CATALOG_ENDPOINTS.product(idOrSlug))
+  return mapProductDetail(data)
+}
+
+/**
+ * Related listing by category id (excludes current product client-side).
+ * @param {{ categoryId?: number | null, excludeId?: string, perPage?: number }} args
+ */
+export async function fetchRelatedProducts({
+  categoryId = null,
+  excludeId = null,
+  perPage = 9,
+} = {}) {
+  /** @type {Record<string, unknown>} */
+  const params = { page: 1, per_page: perPage }
+  if (categoryId != null) params.categories = String(categoryId)
+  const { data } = await apiClient.get(CATALOG_ENDPOINTS.products, { params })
+  const mapped = mapProductsIndexResponse(data)
+  const exclude = excludeId != null ? String(excludeId) : null
+  return mapped.items.filter((item) => (exclude ? item.id !== exclude : true))
 }

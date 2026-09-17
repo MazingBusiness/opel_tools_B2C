@@ -1,47 +1,67 @@
 import { useMemo } from 'react'
-import { useParams } from 'react-router-dom'
-import { getProductById, getRelatedProducts } from '../data/productCatalog'
-import { buildProductDetail } from '../data/productDetailEnrichment'
-import { getAllBrandOptions, getCategoryLabel } from '../utils/categoryTaxonomy'
+import { useProductQuery, useRelatedProductsQuery } from '../api/hooks'
 
 /**
+ * Live PDP data from GET /api/v1/products/:id (or slug).
  * @param {string | undefined} productId
  */
 export function useProductDetail(productId) {
-  return useMemo(() => {
-    if (!productId) {
-      return { product: null, related: [], breadcrumbs: [], notFound: true }
+  const detailQuery = useProductQuery(productId)
+  const product = detailQuery.data ?? null
+
+  const relatedQuery = useRelatedProductsQuery({
+    categoryId: product?.categoryId ?? null,
+    excludeId: product?.id ?? null,
+    enabled: Boolean(product?.categoryId),
+  })
+
+  const breadcrumbs = useMemo(() => {
+    if (!product) {
+      return [
+        { label: 'Home', href: '/' },
+        { label: 'Products', href: '/products' },
+        { label: 'Product' },
+      ]
     }
 
-    const base = getProductById(productId)
-    if (!base) {
-      return { product: null, related: [], breadcrumbs: [], notFound: true }
-    }
-
-    const product = buildProductDetail(base)
-    const related = getRelatedProducts(base).map(buildProductDetail)
-    const brandLabel =
-      getAllBrandOptions().find((brand) => brand.slug === product.brandSlug)?.label ??
-      product.brandSlug
-
-    const breadcrumbs = [
+    /** @type {{ label: string, href?: string }[]} */
+    const items = [
       { label: 'Home', href: '/' },
-      {
-        label: getCategoryLabel(product.categorySlug),
-        href: `/category/${product.categorySlug}`,
-      },
-      {
-        label: getCategoryLabel(product.subCategorySlug),
-        href: `/products?category=${product.categorySlug}&sub=${product.subCategorySlug}`,
-      },
-      { label: product.title },
+      { label: 'Products', href: '/products' },
     ]
 
-    return {
-      product: { ...product, brandLabel },
-      related,
-      breadcrumbs,
-      notFound: false,
+    if (product.groupSlug) {
+      items.push({
+        label: product.groupLabel || product.groupSlug,
+        href: `/products?group=${encodeURIComponent(product.groupSlug)}`,
+      })
     }
-  }, [productId])
+
+    if (product.categorySlug) {
+      items.push({
+        label: product.categoryLabel || product.categorySlug,
+        href: `/products?category=${encodeURIComponent(product.categorySlug)}`,
+      })
+    }
+
+    items.push({ label: product.title })
+    return items
+  }, [product])
+
+  const status = detailQuery.error?.response?.status
+  const notFound =
+    Boolean(productId) &&
+    !detailQuery.isLoading &&
+    (status === 404 || (!detailQuery.isError && !product && detailQuery.isFetched))
+
+  return {
+    product,
+    related: relatedQuery.data ?? [],
+    breadcrumbs,
+    notFound,
+    isLoading: detailQuery.isLoading,
+    isFetching: detailQuery.isFetching,
+    isError: detailQuery.isError && status !== 404,
+    error: detailQuery.error,
+  }
 }

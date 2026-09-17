@@ -4,13 +4,22 @@ import {
   buildProductQueryParams,
   fetchBrands,
   fetchCategoryGroups,
+  fetchProduct,
   fetchProducts,
+  fetchRelatedProducts,
 } from './api'
 
 export const catalogQueryKeys = {
   brands: ['catalog', 'brands'],
   categoryGroups: ['catalog', 'category-groups'],
   products: (params) => ['catalog', 'products', params],
+  product: (id) => ['catalog', 'product', String(id)],
+  related: (categoryId, excludeId) => [
+    'catalog',
+    'related',
+    categoryId ?? null,
+    excludeId ?? null,
+  ],
 }
 
 export function useBrandsQuery() {
@@ -50,5 +59,40 @@ export function useProductsQuery(filters, maps, enabled = true) {
     placeholderData: (previous) => previous,
     queryFn: () => fetchProducts(resolvedParams),
     staleTime: 30_000,
+  })
+}
+
+
+/**
+ * @param {string | undefined} idOrSlug
+ */
+export function useProductQuery(idOrSlug) {
+  return useQuery({
+    queryKey: catalogQueryKeys.product(idOrSlug ?? ''),
+    enabled: Boolean(idOrSlug),
+    queryFn: () => fetchProduct(idOrSlug),
+    staleTime: 30_000,
+    retry: (failureCount, error) => {
+      const status = error?.response?.status
+      if (status === 404) return false
+      return failureCount < 2
+    },
+  })
+}
+
+/**
+ * @param {{ categoryId?: number | null, excludeId?: string, enabled?: boolean }} args
+ */
+export function useRelatedProductsQuery({
+  categoryId = null,
+  excludeId = null,
+  enabled = true,
+} = {}) {
+  return useQuery({
+    queryKey: catalogQueryKeys.related(categoryId, excludeId),
+    enabled: Boolean(enabled && categoryId != null),
+    queryFn: () =>
+      fetchRelatedProducts({ categoryId, excludeId, perPage: 9 }),
+    staleTime: 60_000,
   })
 }

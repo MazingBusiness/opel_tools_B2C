@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { FiHeart, FiRefreshCw, FiShield, FiShoppingCart, FiTruck } from 'react-icons/fi'
+import { FiHeart, FiShoppingCart } from 'react-icons/fi'
+// Deferred marketing copy (not from catalog API yet):
+// import { FiRefreshCw, FiShield, FiTruck } from 'react-icons/fi'
+// import StarRating from '../../../shared/components/StarRating'
 import ProductPriceBlock from '../../../shared/components/ProductPriceBlock'
 import QuantityStepper from '../../../shared/components/QuantityStepper'
-import StarRating from '../../../shared/components/StarRating'
 import { useCart } from '../../cart/hooks/useCart'
 import { useWishlist } from '../../wishlist/hooks/useWishlist'
 
@@ -11,8 +13,13 @@ import { useWishlist } from '../../wishlist/hooks/useWishlist'
  * @param {{ product: object }} props
  */
 export default function ProductBuyBox({ product }) {
-  const [quantity, setQuantity] = useState(1)
+  const minQty = Math.max(1, Number(product.minQty) || 1)
+  const [quantity, setQuantity] = useState(minQty)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    setQuantity(minQty)
+  }, [product.id, minQty])
   const { addToCart } = useCart()
   const { isWishlisted, toggleWishlist } = useWishlist()
   const wishlisted = isWishlisted(product.id)
@@ -30,25 +37,38 @@ export default function ProductBuyBox({ product }) {
     toggleWishlist(product)
   }
 
+  const brandLabel = product.brandLabel || '-'
+  const title = product.title || '-'
+  const sku = product.sku || '-'
+  const description = product.description || '-'
+
   return (
     <div className="rounded-lg border border-border bg-surface p-4 sm:p-5 lg:sticky lg:top-[calc(var(--header-offset,120px)+1rem)]">
-      <Link
-        to={`/products?brand=${product.brandSlug}`}
-        className="text-xs font-semibold uppercase tracking-wide text-brand hover:underline"
-      >
-        {product.brandLabel}
-      </Link>
+      {product.brandSlug ? (
+        <Link
+          to={`/products?brand=${product.brandSlug}`}
+          className="text-xs font-semibold uppercase tracking-wide text-brand hover:underline"
+        >
+          {brandLabel}
+        </Link>
+      ) : (
+        <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+          {brandLabel}
+        </span>
+      )}
 
       <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
-        {product.title}
+        {title}
       </h1>
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
+        {/* Ratings not returned by ProductDetailResource yet
         <StarRating rating={product.rating} reviewCount={product.reviewCount} size="md" />
-        <span className="text-xs text-ink-muted">SKU: {product.sku}</span>
+        */}
+        <span className="text-xs text-ink-muted">SKU: {sku}</span>
       </div>
 
-      <p className="mt-4 text-sm leading-relaxed text-ink-muted">{product.description}</p>
+      <p className="mt-4 text-sm leading-relaxed text-ink-muted">{description}</p>
 
       <div className="mt-5">
         <ProductPriceBlock
@@ -62,12 +82,12 @@ export default function ProductBuyBox({ product }) {
       <p
         className={`mt-3 text-sm font-semibold ${product.inStock ? 'text-success' : 'text-ink-muted'}`}
       >
-        {product.inStock ? 'In stock — ships in 2–4 business days' : 'Currently unavailable'}
+        {product.inStock ? 'In stock' : 'Out of stock'}
       </p>
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
         <span className="text-sm font-medium text-ink-muted">Qty</span>
-        <QuantityStepper value={quantity} onChange={setQuantity} />
+        <QuantityStepper value={quantity} onChange={setQuantity} min={minQty} />
       </div>
 
       <div className="mt-5 flex flex-col gap-2 sm:flex-row">
@@ -102,6 +122,7 @@ export default function ProductBuyBox({ product }) {
         {wishlisted ? 'Saved to wishlist' : 'Save to wishlist'}
       </button>
 
+      {/* Static trust bullets — not from catalog API; restore when we have real policies
       <ul className="mt-6 space-y-3 border-t border-border pt-5">
         <li className="flex items-center gap-3 text-sm text-ink-muted">
           <FiTruck className="size-5 shrink-0 text-brand" aria-hidden />
@@ -116,6 +137,7 @@ export default function ProductBuyBox({ product }) {
           7-day easy returns on unused items
         </li>
       </ul>
+      */}
     </div>
   )
 }

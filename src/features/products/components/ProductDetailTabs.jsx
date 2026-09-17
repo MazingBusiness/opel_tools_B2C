@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import ProductSpecsTable from './ProductSpecsTable'
-import ProductReviewsSection from './ProductReviewsSection'
+// Reviews API not wired yet — keep section commented until we have real data.
+// import ProductReviewsSection from './ProductReviewsSection'
 
 const TABS = [
   { id: 'description', label: 'Description' },
   { id: 'specifications', label: 'Specifications' },
-  { id: 'reviews', label: 'Reviews' },
+  // { id: 'reviews', label: 'Reviews' },
 ]
 
 /**
@@ -37,7 +38,7 @@ export default function ProductDetailTabs({ product }) {
             }`}
           >
             {tab.label}
-            {tab.id === 'reviews' ? ` (${product.reviewCount})` : null}
+            {/* tab.id === 'reviews' ? ` (${product.reviewCount ?? '-'})` : null */}
           </button>
         ))}
       </div>
@@ -51,7 +52,7 @@ export default function ProductDetailTabs({ product }) {
             className="space-y-4"
           >
             <p className="text-sm leading-relaxed text-ink-muted sm:text-base">
-              {product.longDescription}
+              {product.longDescription || '-'}
             </p>
             {product.highlights?.length ? (
               <ul className="list-disc space-y-2 pl-5 text-sm text-ink-muted">
@@ -73,11 +74,13 @@ export default function ProductDetailTabs({ product }) {
           </div>
         ) : null}
 
+        {/* Reviews tab — restore with ProductReviewsSection when API provides ratings
         {activeTab === 'reviews' ? (
           <div role="tabpanel" id="panel-reviews" aria-labelledby="tab-reviews">
             <ProductReviewsSection product={product} />
           </div>
         ) : null}
+        */}
       </div>
     </section>
   )
