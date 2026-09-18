@@ -1,9 +1,12 @@
 import toast from 'react-hot-toast'
 import { useLocation } from 'react-router-dom'
 import { useWishlistStore } from '../../../app/store/useWishlistStore'
+import { useAuthStore } from '../../../app/store/useAuthStore'
 import { useCartStore } from '../../../app/store/useCartStore'
 import { useUiStore } from '../../../app/store/useUiStore'
 import { useCart } from '../../cart/hooks/useCart'
+import { addWishlistItem, removeWishlistItem } from '../api/api'
+import { getErrorMessage } from '../../../shared/api/client'
 
 export function useWishlist() {
   const items = useWishlistStore((s) => s.items)
@@ -20,6 +23,7 @@ export function useWishlist() {
   const { pathname } = useLocation()
   const onWishlistPage = pathname === '/wishlist'
   const count = items.length
+  const token = useAuthStore((s) => s.token)
 
   /**
    * @param {string} productId
@@ -29,11 +33,14 @@ export function useWishlist() {
   }
 
   /**
+   * Optimistic toggle. Guests stay local-only; logged-in users hit the API with rollback.
    * @param {object} product
    * @param {{ openDrawer?: boolean }} [options]
    */
-  function toggleWishlist(product, options = {}) {
+  async function toggleWishlist(product, options = {}) {
     const result = toggleItem(product)
+    if (result === 'noop') return result
+
     if (result === 'added') {
       const { openDrawer = !onWishlistPage } = options
       toast.success(`Saved ${product.title} to wishlist`)
@@ -41,14 +48,52 @@ export function useWishlist() {
     } else if (result === 'removed') {
       toast.success(`Removed ${product.title} from wishlist`)
     }
+
+    if (!token) return result
+
+    try {
+      if (result === 'added') {
+        await addWishlistItem(product.id)
+      } else if (result === 'removed') {
+        await removeWishlistItem(product.id)
+      }
+    } catch (error) {
+      // Rollback optimistic change
+      toggleItem(product)
+      toast.error(getErrorMessage(error, 'Could not update wishlist'))
+      return 'noop'
+    }
+
     return result
   }
 
   /**
    * @param {string} lineIdOrProductId
    */
-  function removeFromWishlist(lineIdOrProductId) {
+  async function removeFromWishlist(lineIdOrProductId) {
+    const existing = items.find(
+      (item) =>
+        item.id === lineIdOrProductId ||
+        String(item.productId) === String(lineIdOrProductId),
+    )
     removeItem(lineIdOrProductId)
+    if (!token || !existing) return
+
+    try {
+      await removeWishlistItem(existing.productId)
+    } catch (error) {
+      addItem({
+        id: existing.productId,
+        title: existing.title,
+        imageUrl: existing.imageUrl,
+        href: existing.href,
+        currentPrice: existing.unitPrice,
+        originalPrice: existing.originalPrice,
+        discountPercentage: existing.discountPercentage,
+        inStock: existing.inStock,
+      })
+      toast.error(getErrorMessage(error, 'Could not remove from wishlist'))
+    }
   }
 
   /**
@@ -80,7 +125,7 @@ export function useWishlist() {
    */
   function moveToCart(item) {
     cartAddItem(toCartProduct(item), 1)
-    removeItem(item.id ?? item.productId)
+    void removeFromWishlist(item.id ?? item.productId)
     toast.success(`Moved ${item.title} to cart`)
     openCart()
   }
@@ -101,12 +146,11 @@ export function useWishlist() {
     count,
     isWishlisted,
     toggleWishlist,
-    addItem,
     removeFromWishlist,
-    clear,
     addToCartFromWishlist,
     moveToCart,
     addAllToCart,
+    clear,
     openWishlist,
     closeWishlist,
   }

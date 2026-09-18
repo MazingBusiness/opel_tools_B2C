@@ -1,9 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import {
-  createSeedWishlistItems,
-  productToWishlistItem,
-} from '../../features/wishlist/data/mockWishlist'
+import { productToWishlistItem } from '../../features/wishlist/data/mockWishlist'
 
 /**
  * @typedef {{
@@ -24,13 +21,27 @@ export const useWishlistStore = create(
     (set, get) => ({
       /** @type {WishlistItem[]} */
       items: [],
-      hasSeeded: false,
+      /** Guest mock seed disabled — local empty until user adds, or server hydrate. */
+      hasSeeded: true,
       hasHydrated: false,
+      /** True after a successful server hydrate while logged in. */
+      serverHydrated: false,
 
       /**
        * @param {string} productId
        */
-      hasProduct: (productId) => get().items.some((item) => item.productId === productId),
+      hasProduct: (productId) =>
+        get().items.some((item) => String(item.productId) === String(productId)),
+
+      /**
+       * @param {WishlistItem[]} items
+       */
+      replaceItems: (items) =>
+        set({
+          items: Array.isArray(items) ? items : [],
+          serverHydrated: true,
+          hasSeeded: true,
+        }),
 
       /**
        * @param {object} product
@@ -38,7 +49,9 @@ export const useWishlistStore = create(
       addItem: (product) => {
         if (!product?.id) return
         set((state) => {
-          if (state.items.some((item) => item.productId === product.id)) return state
+          if (state.items.some((item) => String(item.productId) === String(product.id))) {
+            return state
+          }
           const line = productToWishlistItem(product)
           if (!line) return state
           return { items: [...state.items, line] }
@@ -52,7 +65,8 @@ export const useWishlistStore = create(
         set((state) => ({
           items: state.items.filter(
             (item) =>
-              item.id !== lineIdOrProductId && item.productId !== lineIdOrProductId,
+              item.id !== lineIdOrProductId &&
+              String(item.productId) !== String(lineIdOrProductId),
           ),
         })),
 
@@ -62,7 +76,9 @@ export const useWishlistStore = create(
        */
       toggleItem: (product) => {
         if (!product?.id) return 'noop'
-        const existing = get().items.find((item) => item.productId === product.id)
+        const existing = get().items.find(
+          (item) => String(item.productId) === String(product.id),
+        )
         if (existing) {
           get().removeItem(existing.id)
           return 'removed'
@@ -71,34 +87,32 @@ export const useWishlistStore = create(
         return 'added'
       },
 
-      clear: () => set({ items: [], hasSeeded: true }),
+      clear: () =>
+        set({
+          items: [],
+          hasSeeded: true,
+          serverHydrated: false,
+        }),
     }),
     {
       name: 'opel-wishlist',
-      partialize: (state) => ({ items: state.items, hasSeeded: state.hasSeeded }),
+      partialize: (state) => ({
+        items: state.items,
+        hasSeeded: state.hasSeeded,
+      }),
       onRehydrateStorage: () => () => {
-        seedIfNeeded()
+        useWishlistStore.setState({ hasHydrated: true, hasSeeded: true })
       },
     },
   ),
 )
 
-function seedIfNeeded() {
-  const current = useWishlistStore.getState()
-  if (!current.hasSeeded && current.items.length === 0) {
-    useWishlistStore.setState({
-      items: createSeedWishlistItems(),
-      hasSeeded: true,
-      hasHydrated: true,
-    })
-    return
-  }
-  useWishlistStore.setState({
-    hasHydrated: true,
-    hasSeeded: true,
-  })
+function markWishlistHydrated() {
+  useWishlistStore.setState({ hasHydrated: true, hasSeeded: true })
 }
 
 if (useWishlistStore.persist.hasHydrated()) {
-  seedIfNeeded()
+  markWishlistHydrated()
+} else {
+  useWishlistStore.persist.onFinishHydration(markWishlistHydrated)
 }

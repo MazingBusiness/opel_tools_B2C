@@ -4,6 +4,7 @@ import axios from 'axios'
 import { useAuthStore, toAuthUser } from '../../../app/store/useAuthStore'
 import { fetchMe } from '../api/api'
 import { authQueryKeys } from '../api/hooks'
+import { hydrateWishlistFromServer, clearWishlistLocal } from '../../wishlist/api/hydrate'
 
 /**
  * After persist rehydrate, validate a stored Sanctum token via GET /auth/me.
@@ -26,6 +27,7 @@ export default function AuthSessionBootstrap() {
     // Drop pre-API mock sessions that have a user but no Sanctum token.
     if (!token) {
       validatedTokenRef.current = null
+      // Keep guest local wishlist for login sync — only clear on real logout / 401.
       if (user) logout()
       return undefined
     }
@@ -39,6 +41,7 @@ export default function AuthSessionBootstrap() {
       /** @type {{ user?: { id?: unknown } }} */ (cached).user
     ) {
       validatedTokenRef.current = token
+      void hydrateWishlistFromServer()
       return undefined
     }
 
@@ -57,12 +60,14 @@ export default function AuthSessionBootstrap() {
         })
         queryClient.setQueryData(authQueryKeys.me, data)
         validatedTokenRef.current = token
+        void hydrateWishlistFromServer()
       } catch (error) {
         if (cancelled) return
         const status = axios.isAxiosError(error) ? error.response?.status : undefined
         if (status === 401) {
           validatedTokenRef.current = null
           logout()
+          clearWishlistLocal()
         }
         // Network / 5xx: keep persisted session; user can continue offline-ish until next check.
       }

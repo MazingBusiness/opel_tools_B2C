@@ -3,9 +3,8 @@ import toast from 'react-hot-toast'
 import Breadcrumb from '../../../shared/components/Breadcrumb'
 import SectionHeading from '../../../shared/components/SectionHeading'
 import ProductCard from '../../../shared/components/ProductCard'
-import { getProductById } from '../../products/data/productCatalog'
-import { WISHLIST_REC_IDS } from '../data/mockWishlist'
 import { useWishlist } from '../hooks/useWishlist'
+import { useWishlistRecommendations } from '../hooks/useWishlistRecommendations'
 import WishlistEmptyState from '../components/WishlistEmptyState'
 import WishlistItem from '../components/WishlistItem'
 import WishlistActions from '../components/WishlistActions'
@@ -19,10 +18,7 @@ export default function WishlistPage() {
     moveToCart,
     addAllToCart,
   } = useWishlist()
-  const wishIds = new Set(items.map((item) => item.productId))
-  const recs = WISHLIST_REC_IDS.map((id) => getProductById(id)).filter(
-    (product) => product && !wishIds.has(product.id),
-  )
+  const { products: recs, viewAllHref } = useWishlistRecommendations(items)
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
@@ -66,12 +62,12 @@ export default function WishlistPage() {
         </div>
       )}
 
-      {recs.length > 0 ? (
+      {items.length > 0 && recs.length > 0 ? (
         <section className="mt-12" aria-labelledby="wishlist-recs-heading">
           <SectionHeading
             title="You may also like"
             titleId="wishlist-recs-heading"
-            viewAllHref="/products"
+            viewAllHref={viewAllHref}
             viewAllLabel="View all"
           />
           <div className="mt-6 flex gap-3 overflow-x-auto pb-1">

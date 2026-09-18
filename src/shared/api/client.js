@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { useAuthStore } from '../../app/store/useAuthStore'
+import { clearWishlistLocal } from '../../features/wishlist/api/hydrate'
 
 /** Public auth routes that must not send a stale Bearer token. */
 const PUBLIC_AUTH_PATH_FRAGMENTS = [
@@ -42,6 +43,7 @@ apiClient.interceptors.response.use(
     // Never wipe the session because a public OTP call returned 401 with a stale token.
     if (status === 401 && !isPublicAuthRequest(url)) {
       useAuthStore.getState().logout()
+      clearWishlistLocal()
     }
     return Promise.reject(error)
   },

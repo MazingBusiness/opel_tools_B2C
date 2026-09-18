@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchMe, logoutRequest, requestOtp, updateProfile, verifyOtp } from './api'
 import { useAuthStore, toAuthUser } from '../../../app/store/useAuthStore'
+import { hydrateWishlistFromServer, clearWishlistLocal } from '../../wishlist/api/hydrate'
 
 export const authQueryKeys = {
   me: ['auth', 'me'],
@@ -34,6 +35,7 @@ export function useVerifyOtpMutation() {
     onSuccess: (data) => {
       applyAuthSession(data, 'otp')
       queryClient.setQueryData(authQueryKeys.me, data)
+      void hydrateWishlistFromServer()
     },
   })
 }
@@ -72,6 +74,7 @@ export function useLogoutMutation() {
     mutationFn: logoutRequest,
     onSettled: () => {
       queryClient.removeQueries({ queryKey: authQueryKeys.me })
+      clearWishlistLocal()
     },
   })
 }

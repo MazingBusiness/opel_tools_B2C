@@ -29,10 +29,18 @@ export function mapProductListItem(item) {
       item.category && typeof item.category === 'object' && item.category.slug
         ? String(item.category.slug)
         : '',
+    categoryId:
+      item.category && typeof item.category === 'object' && item.category.id != null
+        ? Number(item.category.id)
+        : null,
     groupSlug:
       item.group && typeof item.group === 'object' && item.group.slug
         ? String(item.group.slug)
         : '',
+    groupId:
+      item.group && typeof item.group === 'object' && item.group.id != null
+        ? Number(item.group.id)
+        : null,
   }
 }
 
