@@ -2,6 +2,7 @@ import axios from 'axios'
 import { useAuthStore } from '../../app/store/useAuthStore'
 import { clearWishlistLocal } from '../../features/wishlist/api/hydrate'
 import { clearCartLocal } from '../../features/cart/api/hydrate'
+import { clearAddressesLocal } from '../../features/address/api/hydrate'
 
 /** Public auth routes that must not send a stale Bearer token. */
 const PUBLIC_AUTH_PATH_FRAGMENTS = [
@@ -46,6 +47,7 @@ apiClient.interceptors.response.use(
       useAuthStore.getState().logout()
       clearWishlistLocal()
       clearCartLocal()
+      clearAddressesLocal()
     }
     return Promise.reject(error)
   },

@@ -12,6 +12,7 @@ import { EMPTY_ADDRESS, INPUT_CLASS, LABEL_CLASS } from '../utils/profileHelpers
 export default function AddressForm({ initial, onCancel, onSave }) {
   const [form, setForm] = useState({ ...EMPTY_ADDRESS, ...initial })
   const [error, setError] = useState('')
+  const isCurrentDefault = Boolean(initial?.isDefault)
 
   function setField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -148,14 +149,22 @@ export default function AddressForm({ initial, onCancel, onSave }) {
             ))}
           </div>
         </fieldset>
-        <label className="flex items-center gap-2 sm:col-span-2">
+        <label className="flex items-start gap-2 sm:col-span-2">
           <input
             type="checkbox"
             checked={form.isDefault}
+            disabled={isCurrentDefault}
             onChange={(e) => setField('isDefault', e.target.checked)}
-            className="accent-brand"
+            className="mt-0.5 accent-brand disabled:opacity-60"
           />
-          <span className="text-sm text-ink">Set as default address</span>
+          <span className="text-sm text-ink">
+            Set as default address
+            {isCurrentDefault ? (
+              <span className="mt-0.5 block text-xs text-ink-muted">
+                To change default, use Set default on another address.
+              </span>
+            ) : null}
+          </span>
         </label>
       </div>
 

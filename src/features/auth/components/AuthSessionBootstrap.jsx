@@ -6,20 +6,18 @@ import { fetchMe } from '../api/api'
 import { authQueryKeys } from '../api/hooks'
 import { hydrateWishlistFromServer, clearWishlistLocal } from '../../wishlist/api/hydrate'
 import { hydrateCartFromServer, clearCartLocal } from '../../cart/api/hydrate'
+import { hydrateAddressesFromServer, clearAddressesLocal } from '../../address/api/hydrate'
 import { useCartStore } from '../../../app/store/useCartStore'
+import { useAddressStore } from '../../../app/store/useAddressStore'
 
 /**
  * After persist rehydrate, validate a stored Sanctum token via GET /auth/me.
- * Only clears the session on an explicit 401 — transient /me failures keep the user signed in.
- * Skips a redundant /me when React Query already has fresh me data for the current token
- * (e.g. right after OTP verify).
- *
- * Cart hydrate is separate: always retry while token is set and serverHydrated is still false
- * (me-once ref must not block a failed/cancelled cart hydrate).
+ * Cart + address hydrate are separate from the me-once ref so a failed hydrate can retry.
  */
 export default function AuthSessionBootstrap() {
   const hasHydrated = useAuthStore((s) => s.hasHydrated)
-  const serverHydrated = useCartStore((s) => s.serverHydrated)
+  const cartServerHydrated = useCartStore((s) => s.serverHydrated)
+  const addressServerHydrated = useAddressStore((s) => s.serverHydrated)
   const token = useAuthStore((s) => s.token)
   const setSession = useAuthStore((s) => s.setSession)
   const logout = useAuthStore((s) => s.logout)
@@ -30,10 +28,8 @@ export default function AuthSessionBootstrap() {
     if (!hasHydrated) return undefined
 
     const { user } = useAuthStore.getState()
-    // Drop pre-API mock sessions that have a user but no Sanctum token.
     if (!token) {
       validatedTokenRef.current = null
-      // Keep guest local wishlist for login sync — only clear on real logout / 401.
       if (user) logout()
       return undefined
     }
@@ -75,8 +71,8 @@ export default function AuthSessionBootstrap() {
           logout()
           clearWishlistLocal()
           clearCartLocal()
+          clearAddressesLocal()
         }
-        // Network / 5xx: keep persisted session; user can continue offline-ish until next check.
       }
     })()
 
@@ -85,12 +81,17 @@ export default function AuthSessionBootstrap() {
     }
   }, [hasHydrated, token, setSession, logout, queryClient])
 
-  // Cart: hydrate when logged in even if persist hasHydrated is stuck false.
   useEffect(() => {
-    if (!token || serverHydrated) return undefined
+    if (!token || cartServerHydrated) return undefined
     void hydrateCartFromServer()
     return undefined
-  }, [token, serverHydrated])
+  }, [token, cartServerHydrated])
+
+  useEffect(() => {
+    if (!token || addressServerHydrated) return undefined
+    void hydrateAddressesFromServer()
+    return undefined
+  }, [token, addressServerHydrated])
 
   return null
 }

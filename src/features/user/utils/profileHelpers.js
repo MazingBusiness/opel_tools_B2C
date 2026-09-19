@@ -105,7 +105,7 @@ export function createSeedProfile(user) {
     phone,
     avatarUrl: user.avatar || '',
     passwordSet: false,
-    addresses: seedAddresses(name, phone),
+    addresses: [],
   }
 }
 

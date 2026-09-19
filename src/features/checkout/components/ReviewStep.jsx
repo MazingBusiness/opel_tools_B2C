@@ -98,11 +98,21 @@ export default function ReviewStep({ items, totals, address, onChangeAddress, on
 
       <p className="text-xs text-ink-muted">
         By placing this order, you agree to our{' '}
-        <Link to="/terms" className="font-semibold text-brand hover:underline">
+        <Link
+          to="/terms"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-semibold text-brand hover:underline"
+        >
           Terms
         </Link>{' '}
         and{' '}
-        <Link to="/returns" className="font-semibold text-brand hover:underline">
+        <Link
+          to="/returns"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-semibold text-brand hover:underline"
+        >
           Returns policy
         </Link>
         .

@@ -1,8 +1,6 @@
 import { useState } from 'react'
-import toast from 'react-hot-toast'
-import { FiBriefcase, FiHome, FiMapPin, FiPlus, FiZap } from 'react-icons/fi'
+import { FiBriefcase, FiHome, FiMapPin, FiPlus } from 'react-icons/fi'
 import AddressForm from '../../user/components/AddressForm'
-import { DEMO_CHECKOUT_ADDRESS } from '../data/demoCheckoutAddress'
 
 /**
  * @param {{
@@ -20,7 +18,7 @@ import { DEMO_CHECKOUT_ADDRESS } from '../data/demoCheckoutAddress'
  *   }>,
  *   selectedAddressId: string,
  *   onSelectAddress: (id: string) => void,
- *   onSaveAddress: (address: object) => { id: string } | null,
+ *   onSaveAddress: (address: object) => Promise<{ id: string } | null> | { id: string } | null,
  *   onContinue: () => void,
  * }} props
  */
@@ -33,24 +31,10 @@ export default function AddressStep({
 }) {
   const [showForm, setShowForm] = useState(false)
 
-  function handleSave(payload) {
-    const saved = onSaveAddress(payload)
-    if (!saved) {
-      toast.error('Could not save address. Please try again.')
-      return
-    }
+  async function handleSave(payload) {
+    const saved = await onSaveAddress(payload)
+    if (!saved) return
     setShowForm(false)
-    toast.success('Address saved')
-  }
-
-  function handleUseDemoAddress() {
-    const saved = onSaveAddress(DEMO_CHECKOUT_ADDRESS)
-    if (!saved) {
-      toast.error('Could not save demo address. Please try again.')
-      return
-    }
-    setShowForm(false)
-    toast.success('Demo address added')
   }
 
   return (
@@ -65,23 +49,13 @@ export default function AddressStep({
           </span>
           <p className="font-semibold text-ink">No saved addresses</p>
           <p className="mt-1 text-sm text-ink-muted">Add a delivery address to continue.</p>
-          <div className="mt-4 flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
-            <button
-              type="button"
-              onClick={() => setShowForm(true)}
-              className="rounded-md bg-highlight px-4 py-2.5 text-sm font-bold text-cta-foreground transition hover:bg-highlight-dark"
-            >
-              Add address
-            </button>
-            <button
-              type="button"
-              onClick={handleUseDemoAddress}
-              className="inline-flex items-center gap-1.5 rounded-md border-2 border-brand px-4 py-2.5 text-sm font-bold text-brand transition hover:bg-brand hover:text-ink-inverse"
-            >
-              <FiZap className="size-4" aria-hidden />
-              Use demo address
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowForm(true)}
+            className="mt-4 rounded-md bg-highlight px-4 py-2.5 text-sm font-bold text-cta-foreground transition hover:bg-highlight-dark"
+          >
+            Add address
+          </button>
         </div>
       ) : null}
 
@@ -139,7 +113,7 @@ export default function AddressStep({
       {showForm ? (
         <div className="mt-4">
           <AddressForm
-            initial={addresses.length === 0 ? DEMO_CHECKOUT_ADDRESS : undefined}
+            initial={undefined}
             onCancel={() => setShowForm(false)}
             onSave={handleSave}
           />

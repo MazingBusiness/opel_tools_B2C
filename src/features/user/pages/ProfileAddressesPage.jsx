@@ -1,39 +1,38 @@
 import { useState } from 'react'
-import toast from 'react-hot-toast'
 import { FiMapPin } from 'react-icons/fi'
-import { useProfileStore } from '../../../app/store/useProfileStore'
 import { useCurrentProfile } from '../hooks/useCurrentProfile'
+import { useAddresses } from '../../address/hooks/useAddresses'
 import AddressCard from '../components/AddressCard'
 import AddressForm from '../components/AddressForm'
 
 export default function ProfileAddressesPage() {
-  const { user, profile } = useCurrentProfile()
-  const addAddress = useProfileStore((s) => s.addAddress)
-  const updateAddress = useProfileStore((s) => s.updateAddress)
-  const deleteAddress = useProfileStore((s) => s.deleteAddress)
-  const setDefaultAddress = useProfileStore((s) => s.setDefaultAddress)
+  const { user } = useCurrentProfile()
+  const {
+    addresses,
+    addAddress,
+    updateAddress,
+    deleteAddress,
+    setDefaultAddress,
+  } = useAddresses()
 
   const [mode, setMode] = useState(/** @type {'closed' | 'add' | string} */ ('closed'))
-  const addresses = profile?.addresses ?? []
   const editing = addresses.find((item) => item.id === mode)
 
-  function handleSave(payload) {
+  async function handleSave(payload) {
     if (!user) return
     if (editing) {
-      updateAddress(user.id, editing.id, payload)
-      toast.success('Address updated')
+      const ok = await updateAddress(editing.id, payload)
+      if (ok) setMode('closed')
     } else {
-      addAddress(user.id, payload)
-      toast.success('Address saved')
+      const ok = await addAddress(payload)
+      if (ok) setMode('closed')
     }
-    setMode('closed')
   }
 
-  function handleDelete(addressId) {
+  async function handleDelete(addressId) {
     if (!user) return
-    deleteAddress(user.id, addressId)
-    if (mode === addressId) setMode('closed')
-    toast.success('Address removed')
+    const ok = await deleteAddress(addressId)
+    if (ok && mode === addressId) setMode('closed')
   }
 
   return (
@@ -77,8 +76,7 @@ export default function ProfileAddressesPage() {
               onDelete={() => handleDelete(address.id)}
               onSetDefault={() => {
                 if (!user) return
-                setDefaultAddress(user.id, address.id)
-                toast.success('Default address updated')
+                void setDefaultAddress(address.id)
               }}
             />
           ))}

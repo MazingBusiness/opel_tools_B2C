@@ -8,6 +8,7 @@ import {
 } from 'react-icons/fi'
 import SectionHeading from '../../../shared/components/SectionHeading'
 import { useCurrentProfile } from '../hooks/useCurrentProfile'
+import { useAddresses } from '../../address/hooks/useAddresses'
 import { getCompleteness, resolveDisplayName } from '../utils/profileHelpers'
 import { mockOrders } from '../data/mockOrders'
 import ProfileAvatar from '../components/ProfileAvatar'
@@ -15,6 +16,7 @@ import OrderCard from '../components/OrderCard'
 
 export default function ProfileOverviewPage() {
   const { user, profile } = useCurrentProfile()
+  const { addresses } = useAddresses()
   const displayName = resolveDisplayName(user, profile)
   const completeness = getCompleteness(profile)
   const inTransit = mockOrders.filter(
@@ -37,7 +39,7 @@ export default function ProfileOverviewPage() {
     },
     {
       label: 'Addresses',
-      value: profile?.addresses?.length ?? 0,
+      value: addresses.length,
       hint: 'Saved locations',
       icon: FiMapPin,
     },

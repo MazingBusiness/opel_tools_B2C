@@ -3,6 +3,7 @@ import { fetchMe, logoutRequest, requestOtp, updateProfile, verifyOtp } from './
 import { useAuthStore, toAuthUser } from '../../../app/store/useAuthStore'
 import { hydrateWishlistFromServer, clearWishlistLocal } from '../../wishlist/api/hydrate'
 import { hydrateCartFromServer, clearCartLocal } from '../../cart/api/hydrate'
+import { hydrateAddressesFromServer, clearAddressesLocal } from '../../address/api/hydrate'
 
 export const authQueryKeys = {
   me: ['auth', 'me'],
@@ -38,6 +39,7 @@ export function useVerifyOtpMutation() {
       queryClient.setQueryData(authQueryKeys.me, data)
       void hydrateWishlistFromServer()
       void hydrateCartFromServer()
+      void hydrateAddressesFromServer()
     },
   })
 }
@@ -78,6 +80,7 @@ export function useLogoutMutation() {
       queryClient.removeQueries({ queryKey: authQueryKeys.me })
       clearWishlistLocal()
       clearCartLocal()
+      clearAddressesLocal()
     },
   })
 }

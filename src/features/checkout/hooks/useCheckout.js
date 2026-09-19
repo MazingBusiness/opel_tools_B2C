@@ -1,9 +1,9 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuthStore } from '../../../app/store/useAuthStore'
 import { useCartStore } from '../../../app/store/useCartStore'
 import { useCart } from '../../cart/hooks/useCart'
 import { useOrdersStore } from '../../../app/store/useOrdersStore'
-import { useProfileStore } from '../../../app/store/useProfileStore'
+import { useAddresses } from '../../address/hooks/useAddresses'
 import { getCartTotals } from '../../cart/utils/cartTotals'
 import { simulateZohoPayment } from '../api/zohoPayments'
 import { getPaymentMethodLabel } from '../data/paymentMethods'
@@ -23,19 +23,20 @@ export function useCheckout() {
   const items = useCartStore((s) => s.items)
   const { clear: clearCart } = useCart()
   const addOrder = useOrdersStore((s) => s.addOrder)
-  const profile = useProfileStore((s) => (user ? s.byUserId[user.id] ?? null : null))
-  const addAddress = useProfileStore((s) => s.addAddress)
-  const ensureProfile = useProfileStore((s) => s.ensureProfile)
-
-  const addresses = profile?.addresses ?? []
-  const defaultAddress = addresses.find((item) => item.isDefault) ?? addresses[0] ?? null
+  const { addresses, defaultAddress, addAddress } = useAddresses()
 
   const [step, setStep] = useState(/** @type {CheckoutStep} */ ('address'))
-  const [selectedAddressId, setSelectedAddressId] = useState(defaultAddress?.id ?? '')
+  const [selectedAddressId, setSelectedAddressId] = useState('')
   const [paymentMethod, setPaymentMethod] = useState(/** @type {'upi' | 'card' | 'netbanking'} */ ('upi'))
   const [isProcessing, setIsProcessing] = useState(false)
   const [paymentError, setPaymentError] = useState('')
   const [placedOrder, setPlacedOrder] = useState(/** @type {import('../utils/createOrder.js').ReturnType<typeof createOrder> | null} */ (null))
+
+  useEffect(() => {
+    if (!selectedAddressId && defaultAddress?.id) {
+      setSelectedAddressId(defaultAddress.id)
+    }
+  }, [defaultAddress?.id, selectedAddressId])
 
   const totals = useMemo(() => getCartTotals(items), [items])
 
@@ -64,23 +65,19 @@ export function useCheckout() {
   }, [step])
 
   /**
-   * @param {import('../../../app/store/useProfileStore.js').ProfileAddress extends infer T ? Omit<T, 'id'> : never} address
+   * @param {Omit<import('../../../app/store/useAddressStore.js').Address extends infer T ? T : never, 'id'>} address
    */
   const saveNewAddress = useCallback(
-    (address) => {
+    async (address) => {
       if (!user) return null
-      ensureProfile(user)
-      const isFirstAddress = (useProfileStore.getState().byUserId[user.id]?.addresses.length ?? 0) === 0
-      addAddress(user.id, {
+      const created = await addAddress({
         ...address,
-        isDefault: isFirstAddress ? true : address.isDefault,
+        isDefault: addresses.length === 0 ? true : Boolean(address.isDefault),
       })
-      const updated = useProfileStore.getState().byUserId[user.id]
-      const newest = updated?.addresses[updated.addresses.length - 1]
-      if (newest) setSelectedAddressId(newest.id)
-      return newest ?? null
+      if (created?.id) setSelectedAddressId(created.id)
+      return created
     },
-    [user, addAddress, ensureProfile],
+    [user, addAddress, addresses.length],
   )
 
   const processPayment = useCallback(async () => {
