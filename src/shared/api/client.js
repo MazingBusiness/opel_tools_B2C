@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { useAuthStore } from '../../app/store/useAuthStore'
 import { clearWishlistLocal } from '../../features/wishlist/api/hydrate'
+import { clearCartLocal } from '../../features/cart/api/hydrate'
 
 /** Public auth routes that must not send a stale Bearer token. */
 const PUBLIC_AUTH_PATH_FRAGMENTS = [
@@ -44,6 +45,7 @@ apiClient.interceptors.response.use(
     if (status === 401 && !isPublicAuthRequest(url)) {
       useAuthStore.getState().logout()
       clearWishlistLocal()
+      clearCartLocal()
     }
     return Promise.reject(error)
   },

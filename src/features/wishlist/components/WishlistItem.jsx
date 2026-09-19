@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { FiShoppingCart, FiTrash2 } from 'react-icons/fi'
 import { formatPrice } from '../../../shared/utils/formatPrice'
+import { useUiStore } from '../../../app/store/useUiStore'
 
 const PLACEHOLDER =
   'data:image/svg+xml,' +
@@ -32,6 +33,7 @@ export default function WishlistItem({
   onMoveToCart,
   onRemove,
 }) {
+  const closeWishlist = useUiStore((s) => s.closeWishlist)
   const imageClass = compact ? 'size-16' : 'size-20 sm:size-24'
   const inStock = item.inStock !== false
 
@@ -40,6 +42,7 @@ export default function WishlistItem({
       <Link
         to={item.href}
         className={`${imageClass} shrink-0 overflow-hidden rounded-md bg-surface-muted`}
+        onClick={closeWishlist}
       >
         <img
           src={item.imageUrl}
@@ -57,6 +60,7 @@ export default function WishlistItem({
           <Link
             to={item.href}
             className={`font-semibold text-ink transition hover:text-brand ${compact ? 'line-clamp-2 text-sm' : 'line-clamp-2 text-sm sm:text-base'}`}
+            onClick={closeWishlist}
           >
             {item.title}
           </Link>

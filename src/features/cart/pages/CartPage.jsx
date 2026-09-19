@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import Breadcrumb from '../../../shared/components/Breadcrumb'
@@ -5,13 +6,24 @@ import SectionHeading from '../../../shared/components/SectionHeading'
 import ProductCard from '../../../shared/components/ProductCard'
 import { getProductById } from '../../products/data/productCatalog'
 import { CART_REC_IDS } from '../data/mockCart'
+import { useAuthStore } from '../../../app/store/useAuthStore'
+import { useCartStore } from '../../../app/store/useCartStore'
 import { useCart } from '../hooks/useCart'
+import { hydrateCartFromServer } from '../api/hydrate'
 import CartEmptyState from '../components/CartEmptyState'
 import CartLineItem from '../components/CartLineItem'
 import CartSummary from '../components/CartSummary'
 
 export default function CartPage() {
   const { items, totals, setQty, removeItem } = useCart()
+  const token = useAuthStore((s) => s.token)
+  const serverHydrated = useCartStore((s) => s.serverHydrated)
+
+  useEffect(() => {
+    if (!token || serverHydrated) return
+    void hydrateCartFromServer()
+  }, [token, serverHydrated])
+
   const cartIds = new Set(items.map((item) => item.productId))
   const recs = CART_REC_IDS.map((id) => getProductById(id)).filter(
     (product) => product && !cartIds.has(product.id),

@@ -1,5 +1,3 @@
-import { getProductById } from '../../products/data/productCatalog'
-
 /**
  * @param {object} product
  * @param {number} qty
@@ -8,7 +6,7 @@ export function productToCartLine(product, qty = 1) {
   if (!product) return null
   return {
     id: `cart-${product.id}`,
-    productId: product.id,
+    productId: String(product.id),
     title: product.title,
     imageUrl: product.imageUrl,
     href: product.href ?? `/products/${product.id}`,
@@ -16,20 +14,14 @@ export function productToCartLine(product, qty = 1) {
     originalPrice: product.originalPrice,
     discountPercentage: product.discountPercentage ?? 0,
     qty,
+    available: true,
+    inStock: product.inStock !== false,
   }
 }
 
-/**
- * @param {string} productId
- * @param {number} qty
- */
-function line(productId, qty) {
-  return productToCartLine(getProductById(productId), qty)
-}
-
-/** First-visit dummy cart (not re-applied after the user clears). */
+/** Guest/mock seed disabled — cart requires login. */
 export function createSeedCartLines() {
-  return [line('pt-1', 1), line('pt-2', 1), line('ht-1', 1)].filter(Boolean)
+  return []
 }
 
-export const CART_REC_IDS = ['pt-5', 'pt-10', 'ac-1', 'sg-1']
+export const CART_REC_IDS = []

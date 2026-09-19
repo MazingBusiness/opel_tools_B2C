@@ -33,7 +33,7 @@ export default function CheckoutPage() {
     processPayment,
   } = checkout
 
-  const isSuccess = step === 'success'
+  const isSuccess = step === 'success' || Boolean(placedOrder)
   const showEmptyCartRedirect = items.length === 0 && !isSuccess
 
   useEffect(() => {

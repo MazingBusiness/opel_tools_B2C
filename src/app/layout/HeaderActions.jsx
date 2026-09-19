@@ -41,12 +41,25 @@ export default function HeaderActions() {
   const logoutMutation = useLogoutMutation()
 
   const openAuthModal = useUiStore((s) => s.openAuthModal)
-  const openCart = useUiStore((s) => s.openCart)
+  const openCartDrawer = useUiStore((s) => s.openCart)
   const openWishlist = useUiStore((s) => s.openWishlist)
   const cartItems = useCartStore((s) => s.items)
-  const cartCount = getCartTotals(cartItems).itemCount
+  const serverMeta = useCartStore((s) => s.serverMeta)
+  const liveCount = getCartTotals(cartItems).itemCount
+  const cartCount =
+    cartItems.length > 0 ? liveCount : (serverMeta?.itemCount ?? liveCount)
   const wishlistCount = useWishlistStore((s) => s.items.length)
   const user = useAuthStore((s) => s.user)
+  const token = useAuthStore((s) => s.token)
+
+  function openCart() {
+    if (!token) {
+      toast.error('Please sign in to use your cart')
+      openAuthModal()
+      return
+    }
+    openCartDrawer()
+  }
   const ensureProfile = useProfileStore((s) => s.ensureProfile)
   const hasHydrated = useProfileStore((s) => s.hasHydrated)
   const profile = useProfileStore((s) =>

@@ -8,6 +8,7 @@ import ProductPriceBlock from '../../../shared/components/ProductPriceBlock'
 import QuantityStepper from '../../../shared/components/QuantityStepper'
 import { useCart } from '../../cart/hooks/useCart'
 import { useWishlist } from '../../wishlist/hooks/useWishlist'
+import { MAX_CART_QTY } from '../../cart/utils/cartTotals'
 
 /**
  * @param {{ product: object }} props
@@ -16,21 +17,40 @@ export default function ProductBuyBox({ product }) {
   const minQty = Math.max(1, Number(product.minQty) || 1)
   const [quantity, setQuantity] = useState(minQty)
   const navigate = useNavigate()
+  const { addToCart, setQty, items, openCart } = useCart()
+  const cartLine = items.find(
+    (item) =>
+      String(item.productId) === String(product.id) && item.available !== false,
+  )
+  const maxQty = Math.max(minQty, Number(cartLine?.maxQty ?? MAX_CART_QTY) || MAX_CART_QTY)
 
   useEffect(() => {
-    setQuantity(minQty)
-  }, [product.id, minQty])
-  const { addToCart } = useCart()
+    setQuantity(cartLine ? cartLine.qty : minQty)
+  }, [product.id, minQty, cartLine?.id, cartLine?.qty])
   const { isWishlisted, toggleWishlist } = useWishlist()
   const wishlisted = isWishlisted(product.id)
 
+  function handleQtyChange(nextQty) {
+    const qty = Math.min(maxQty, Math.max(minQty, nextQty))
+    setQuantity(qty)
+    if (cartLine) void setQty(cartLine.id, qty)
+  }
+
   function handleAddToCart() {
+    if (cartLine) {
+      openCart()
+      return
+    }
     addToCart(product, quantity)
   }
 
-  function handleBuyNow() {
-    addToCart(product, quantity, { openDrawer: false })
-    navigate('/cart')
+  async function handleBuyNow() {
+    if (cartLine) {
+      navigate('/cart')
+      return
+    }
+    const ok = await addToCart(product, quantity, { openDrawer: false })
+    if (ok) navigate('/cart')
   }
 
   function handleWishlist() {
@@ -87,7 +107,12 @@ export default function ProductBuyBox({ product }) {
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
         <span className="text-sm font-medium text-ink-muted">Qty</span>
-        <QuantityStepper value={quantity} onChange={setQuantity} min={minQty} />
+        <QuantityStepper
+          value={quantity}
+          onChange={handleQtyChange}
+          min={minQty}
+          max={maxQty}
+        />
       </div>
 
       <div className="mt-5 flex flex-col gap-2 sm:flex-row">
@@ -98,7 +123,7 @@ export default function ProductBuyBox({ product }) {
           className="inline-flex flex-1 items-center justify-center gap-2 rounded-md border-2 border-brand py-3 text-sm font-bold text-brand transition hover:bg-brand hover:text-ink-inverse disabled:cursor-not-allowed disabled:opacity-50"
         >
           <FiShoppingCart className="size-4" />
-          Add to cart
+          {cartLine ? 'View cart' : 'Add to cart'}
         </button>
         <button
           type="button"

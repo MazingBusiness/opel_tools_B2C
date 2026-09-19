@@ -2,7 +2,6 @@ import toast from 'react-hot-toast'
 import { useLocation } from 'react-router-dom'
 import { useWishlistStore } from '../../../app/store/useWishlistStore'
 import { useAuthStore } from '../../../app/store/useAuthStore'
-import { useCartStore } from '../../../app/store/useCartStore'
 import { useUiStore } from '../../../app/store/useUiStore'
 import { useCart } from '../../cart/hooks/useCart'
 import { addWishlistItem, removeWishlistItem } from '../api/api'
@@ -15,11 +14,9 @@ export function useWishlist() {
   const toggleItem = useWishlistStore((s) => s.toggleItem)
   const clear = useWishlistStore((s) => s.clear)
   const hasProduct = useWishlistStore((s) => s.hasProduct)
-  const cartAddItem = useCartStore((s) => s.addItem)
   const openWishlist = useUiStore((s) => s.openWishlist)
   const closeWishlist = useUiStore((s) => s.closeWishlist)
-  const openCart = useUiStore((s) => s.openCart)
-  const { addToCart } = useCart()
+  const { addToCart, openCart } = useCart()
   const { pathname } = useLocation()
   const onWishlistPage = pathname === '/wishlist'
   const count = items.length
@@ -116,27 +113,39 @@ export function useWishlist() {
    * @param {object} item
    * @param {{ openDrawer?: boolean }} [options]
    */
-  function addToCartFromWishlist(item, options = {}) {
-    addToCart(toCartProduct(item), 1, { openDrawer: options.openDrawer ?? false })
+  async function addToCartFromWishlist(item, options = {}) {
+    return addToCart(toCartProduct(item), 1, {
+      openDrawer: options.openDrawer ?? false,
+    })
   }
 
   /**
    * @param {object} item
    */
-  function moveToCart(item) {
-    cartAddItem(toCartProduct(item), 1)
-    void removeFromWishlist(item.id ?? item.productId)
+  async function moveToCart(item) {
+    const ok = await addToCart(toCartProduct(item), 1, {
+      openDrawer: true,
+      skipToast: true,
+    })
+    if (!ok) return
+    await removeFromWishlist(item.id ?? item.productId)
     toast.success(`Moved ${item.title} to cart`)
-    openCart()
   }
 
-  function addAllToCart() {
+  async function addAllToCart() {
     if (items.length === 0) return
-    items.forEach((item) => {
-      cartAddItem(toCartProduct(item), 1)
-    })
+    const list = [...items]
+    let okCount = 0
+    for (const item of list) {
+      const ok = await addToCart(toCartProduct(item), 1, {
+        openDrawer: false,
+        skipToast: true,
+      })
+      if (ok) okCount += 1
+    }
+    if (okCount === 0) return
     toast.success(
-      `Added ${items.length} ${items.length === 1 ? 'item' : 'items'} to cart`,
+      `Added ${okCount} ${okCount === 1 ? 'item' : 'items'} to cart`,
     )
     openCart()
   }

@@ -3,7 +3,10 @@ import { Link, useNavigate } from 'react-router-dom'
 import { FiX } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import { useUiStore } from '../../../app/store/useUiStore'
+import { useAuthStore } from '../../../app/store/useAuthStore'
+import { useCartStore } from '../../../app/store/useCartStore'
 import { useCart } from '../hooks/useCart'
+import { hydrateCartFromServer } from '../api/hydrate'
 import CartLineItem from './CartLineItem'
 import CartEmptyState from './CartEmptyState'
 import { formatPrice } from '../../../shared/utils/formatPrice'
@@ -17,6 +20,9 @@ export default function CartDrawer() {
 
   useEffect(() => {
     if (!isOpen) return undefined
+    if (useAuthStore.getState().token && !useCartStore.getState().serverHydrated) {
+      void hydrateCartFromServer()
+    }
 
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'

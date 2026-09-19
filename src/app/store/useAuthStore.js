@@ -67,11 +67,9 @@ export const useAuthStore = create(
         user: state.user,
         profileComplete: state.profileComplete,
       }),
-      onRehydrateStorage: () => (_state, _error) => {
-        // Always mark hydrated — including on storage errors — so the header
-        // login control is never stuck behind a non-interactive placeholder.
-        useAuthStore.setState({ hasHydrated: true })
-      },
+      // Do not call useAuthStore here: hydrate runs during create() (TDZ) and a
+      // throw aborts zustand persist before persist.hasHydrated() becomes true.
+      onRehydrateStorage: () => {},
     },
   ),
 )

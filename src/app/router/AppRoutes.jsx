@@ -40,7 +40,6 @@ export default function AppRoutes() {
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/warranty" element={<WarrantyPage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/cart" element={<CartPage />} />
         <Route path="/wishlist" element={<WishlistPage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/products/:productId" element={<ProductDetailPage />} />
@@ -52,6 +51,7 @@ export default function AppRoutes() {
           element={<CategoryBrowsePage />}
         />
         <Route element={<RequireAuth />}>
+          <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/profile" element={<ProfileLayout />}>
             <Route index element={<ProfileOverviewPage />} />

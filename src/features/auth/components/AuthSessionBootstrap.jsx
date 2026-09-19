@@ -5,15 +5,21 @@ import { useAuthStore, toAuthUser } from '../../../app/store/useAuthStore'
 import { fetchMe } from '../api/api'
 import { authQueryKeys } from '../api/hooks'
 import { hydrateWishlistFromServer, clearWishlistLocal } from '../../wishlist/api/hydrate'
+import { hydrateCartFromServer, clearCartLocal } from '../../cart/api/hydrate'
+import { useCartStore } from '../../../app/store/useCartStore'
 
 /**
  * After persist rehydrate, validate a stored Sanctum token via GET /auth/me.
  * Only clears the session on an explicit 401 — transient /me failures keep the user signed in.
  * Skips a redundant /me when React Query already has fresh me data for the current token
  * (e.g. right after OTP verify).
+ *
+ * Cart hydrate is separate: always retry while token is set and serverHydrated is still false
+ * (me-once ref must not block a failed/cancelled cart hydrate).
  */
 export default function AuthSessionBootstrap() {
   const hasHydrated = useAuthStore((s) => s.hasHydrated)
+  const serverHydrated = useCartStore((s) => s.serverHydrated)
   const token = useAuthStore((s) => s.token)
   const setSession = useAuthStore((s) => s.setSession)
   const logout = useAuthStore((s) => s.logout)
@@ -68,6 +74,7 @@ export default function AuthSessionBootstrap() {
           validatedTokenRef.current = null
           logout()
           clearWishlistLocal()
+          clearCartLocal()
         }
         // Network / 5xx: keep persisted session; user can continue offline-ish until next check.
       }
@@ -77,6 +84,13 @@ export default function AuthSessionBootstrap() {
       cancelled = true
     }
   }, [hasHydrated, token, setSession, logout, queryClient])
+
+  // Cart: hydrate when logged in even if persist hasHydrated is stuck false.
+  useEffect(() => {
+    if (!token || serverHydrated) return undefined
+    void hydrateCartFromServer()
+    return undefined
+  }, [token, serverHydrated])
 
   return null
 }

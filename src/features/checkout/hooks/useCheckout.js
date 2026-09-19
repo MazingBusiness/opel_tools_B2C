@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useAuthStore } from '../../../app/store/useAuthStore'
 import { useCartStore } from '../../../app/store/useCartStore'
+import { useCart } from '../../cart/hooks/useCart'
 import { useOrdersStore } from '../../../app/store/useOrdersStore'
 import { useProfileStore } from '../../../app/store/useProfileStore'
 import { getCartTotals } from '../../cart/utils/cartTotals'
@@ -20,7 +21,7 @@ export const CHECKOUT_STEPS = [
 export function useCheckout() {
   const user = useAuthStore((s) => s.user)
   const items = useCartStore((s) => s.items)
-  const clearCart = useCartStore((s) => s.clear)
+  const { clear: clearCart } = useCart()
   const addOrder = useOrdersStore((s) => s.addOrder)
   const profile = useProfileStore((s) => (user ? s.byUserId[user.id] ?? null : null))
   const addAddress = useProfileStore((s) => s.addAddress)
@@ -108,9 +109,10 @@ export function useCheckout() {
     })
 
     addOrder(user.id, order)
-    clearCart()
+    // Success UI first — clearing empties items and would Navigate to /cart if still on payment.
     setPlacedOrder(order)
     setStep('success')
+    await clearCart()
   }, [user, selectedAddress, items, totals.grandTotal, paymentMethod, addOrder, clearCart])
 
   return {

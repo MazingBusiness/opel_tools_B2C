@@ -4,14 +4,31 @@ export const SHIPPING_FEE = 99
 export const GST_RATE = 0.18
 
 /**
- * @param {Array<{ unitPrice: number, originalPrice?: number, qty: number }>} items
+ * Qty used for money totals — clamp to stock when line flags excess.
+ * @param {{ qty: number, available?: boolean, effectiveQty?: number, qtyExceedsStock?: boolean }} item
+ */
+function billableQty(item) {
+  if (item.available === false) return 0
+  if (item.qtyExceedsStock && typeof item.effectiveQty === 'number') {
+    return Math.max(0, item.effectiveQty)
+  }
+  return Math.max(0, item.qty ?? 0)
+}
+
+/**
+ * @param {Array<{ unitPrice: number, originalPrice?: number, qty: number, available?: boolean, effectiveQty?: number }>} items
  */
 export function getCartTotals(items) {
   const list = items ?? []
-  const itemCount = list.reduce((sum, item) => sum + item.qty, 0)
-  const subtotal = list.reduce((sum, item) => sum + item.unitPrice * item.qty, 0)
-  const originalTotal = list.reduce(
-    (sum, item) => sum + (item.originalPrice ?? item.unitPrice) * item.qty,
+  const available = list.filter((item) => item.available !== false)
+  const itemCount = available.reduce((sum, item) => sum + billableQty(item), 0)
+  const subtotal = available.reduce(
+    (sum, item) => sum + item.unitPrice * billableQty(item),
+    0,
+  )
+  const originalTotal = available.reduce(
+    (sum, item) =>
+      sum + (item.originalPrice ?? item.unitPrice) * billableQty(item),
     0,
   )
   const savings = Math.max(0, originalTotal - subtotal)
@@ -22,7 +39,7 @@ export function getCartTotals(items) {
 
   return {
     itemCount,
-    lineCount: list.length,
+    lineCount: available.length,
     subtotal,
     savings,
     shipping,
