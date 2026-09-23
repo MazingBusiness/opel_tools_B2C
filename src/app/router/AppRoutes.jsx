@@ -25,6 +25,7 @@ import ProfileOrdersPage from '../../features/user/pages/ProfileOrdersPage'
 import ProfileOrderDetailPage from '../../features/user/pages/ProfileOrderDetailPage'
 import ProfileSecurityPage from '../../features/user/pages/ProfileSecurityPage'
 import CheckoutPage from '../../features/checkout/pages/CheckoutPage'
+import PaymentReturnPage from '../../features/checkout/pages/PaymentReturnPage'
 
 export default function AppRoutes() {
   return (
@@ -53,6 +54,7 @@ export default function AppRoutes() {
         <Route element={<RequireAuth />}>
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/checkout/payment/return" element={<PaymentReturnPage />} />
           <Route path="/profile" element={<ProfileLayout />}>
             <Route index element={<ProfileOverviewPage />} />
             <Route path="details" element={<ProfileDetailsPage />} />

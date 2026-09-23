@@ -1,13 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuthStore } from '../../../app/store/useAuthStore'
 import { useCartStore } from '../../../app/store/useCartStore'
-import { useCart } from '../../cart/hooks/useCart'
-import { useOrdersStore } from '../../../app/store/useOrdersStore'
 import { useAddresses } from '../../address/hooks/useAddresses'
 import { getCartTotals } from '../../cart/utils/cartTotals'
-import { simulateZohoPayment } from '../api/zohoPayments'
-import { getPaymentMethodLabel } from '../data/paymentMethods'
-import { createOrder } from '../utils/createOrder'
+import { createOrder as createOrderApi } from '../../order/api/api'
+import { getErrorMessage } from '../../../shared/api/client'
 
 /** @typedef {'address' | 'review' | 'payment' | 'success'} CheckoutStep */
 
@@ -21,8 +18,6 @@ export const CHECKOUT_STEPS = [
 export function useCheckout() {
   const user = useAuthStore((s) => s.user)
   const items = useCartStore((s) => s.items)
-  const { clear: clearCart } = useCart()
-  const addOrder = useOrdersStore((s) => s.addOrder)
   const { addresses, defaultAddress, addAddress } = useAddresses()
 
   const [step, setStep] = useState(/** @type {CheckoutStep} */ ('address'))
@@ -86,31 +81,35 @@ export function useCheckout() {
     setIsProcessing(true)
     setPaymentError('')
 
-    const result = await simulateZohoPayment({
-      amount: totals.grandTotal,
-      method: paymentMethod,
-    })
+    try {
+      const { order, paymentUrl, message, authRequired } = await createOrderApi(
+        selectedAddress.id,
+      )
 
-    setIsProcessing(false)
+      if (!order?.id) {
+        setPaymentError(message || 'Could not create order.')
+        setIsProcessing(false)
+        return
+      }
 
-    if (!result.success) {
-      setPaymentError(result.error ?? 'Payment failed. Please try again.')
-      return
+      if (authRequired || !paymentUrl) {
+        setPaymentError(
+          message ||
+            'Zoho Payments needs a one-time OAuth connect on the server. Ask Code Dev for the oauth/redirect URL.',
+        )
+        setIsProcessing(false)
+        return
+      }
+
+      sessionStorage.setItem('opel_pending_order_id', String(order.id))
+      // Do not clear cart until payment is confirmed paid (cancel/fail keeps cart).
+      window.location.assign(paymentUrl)
+    } catch (error) {
+      setIsProcessing(false)
+      setPaymentError(getErrorMessage(error, 'Could not start payment. Please try again.'))
     }
+  }, [user, selectedAddress, items.length])
 
-    const order = createOrder({
-      items,
-      address: selectedAddress,
-      paymentMethod: getPaymentMethodLabel(paymentMethod),
-      paymentRef: result.transactionId,
-    })
-
-    addOrder(user.id, order)
-    // Success UI first — clearing empties items and would Navigate to /cart if still on payment.
-    setPlacedOrder(order)
-    setStep('success')
-    await clearCart()
-  }, [user, selectedAddress, items, totals.grandTotal, paymentMethod, addOrder, clearCart])
 
   return {
     step,

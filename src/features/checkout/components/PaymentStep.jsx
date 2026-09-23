@@ -31,7 +31,7 @@ export default function PaymentStep({
           <div>
             <p className="text-sm font-bold text-ink">Secured by Zoho Payments</p>
             <p className="mt-0.5 text-xs text-ink-muted">
-              Simulated payment flow for demo. No real charges will be made.
+              You will complete payment on Zoho’s secure page (sandbox). Status confirms after return.
             </p>
           </div>
         </div>
