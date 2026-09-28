@@ -1,19 +1,44 @@
 import { useEffect, useMemo, useState } from 'react'
 import { FiPackage } from 'react-icons/fi'
-import { useOrdersStore } from '../../../app/store/useOrdersStore'
-import { ORDER_STATUS_FILTERS } from '../data/mockOrders'
+import { fetchOrders } from '../../order/api/api'
+import { ORDER_STATUS_FILTERS } from '../../order/utils/orderStatus'
+import { getErrorMessage } from '../../../shared/api/client'
 import OrderCard from '../components/OrderCard'
 import { useCurrentProfile } from '../hooks/useCurrentProfile'
 
 export default function ProfileOrdersPage() {
   const { user } = useCurrentProfile()
-  const ensureSeeded = useOrdersStore((s) => s.ensureSeeded)
-  const allOrders = useOrdersStore((s) => (user?.id ? s.byUserId[user.id] ?? [] : []))
+  const [allOrders, setAllOrders] = useState(/** @type {any[]} */ ([]))
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [filter, setFilter] = useState('all')
 
   useEffect(() => {
-    if (user?.id) ensureSeeded(user.id)
-  }, [user?.id, ensureSeeded])
+    if (!user) {
+      setAllOrders([])
+      setLoading(false)
+      return
+    }
+    let cancelled = false
+    setLoading(true)
+    setError('')
+    fetchOrders()
+      .then(({ orders }) => {
+        if (!cancelled) setAllOrders(orders)
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(getErrorMessage(err, 'Could not load orders.'))
+          setAllOrders([])
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user])
 
   const orders = useMemo(() => {
     if (filter === 'all') return allOrders
@@ -51,16 +76,24 @@ export default function ProfileOrdersPage() {
       </div>
 
       <div className="mt-4 flex flex-col gap-3">
-        {orders.length ? (
+        {loading ? (
+          <p className="rounded-lg border border-dashed border-border bg-surface-muted px-6 py-12 text-center text-sm text-ink-muted">
+            Loading orders…
+          </p>
+        ) : error ? (
+          <p className="rounded-lg border border-dashed border-red-200 bg-red-50 px-6 py-12 text-center text-sm text-red-600">
+            {error}
+          </p>
+        ) : orders.length ? (
           orders.map((order) => <OrderCard key={order.id} order={order} />)
         ) : (
           <div className="rounded-lg border border-dashed border-border bg-surface-muted px-6 py-12 text-center">
             <span className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-brand/10 text-brand">
               <FiPackage className="size-6" aria-hidden />
             </span>
-            <p className="font-semibold text-ink">No orders in this filter</p>
+            <p className="font-semibold text-ink">No orders yet</p>
             <p className="mt-1 text-sm text-ink-muted">
-              Try another status or browse the catalog.
+              When you place an order, it will show up here.
             </p>
           </div>
         )}

@@ -22,10 +22,10 @@ export default function CheckoutPage() {
     selectedAddressId,
     setSelectedAddressId,
     selectedAddress,
-    paymentMethod,
-    setPaymentMethod,
     isProcessing,
     paymentError,
+    paymentMethod,
+    setPaymentMethod,
     placedOrder,
     goToStep,
     goNext,
@@ -42,6 +42,10 @@ export default function CheckoutPage() {
       if (defaultAddr) setSelectedAddressId(defaultAddr.id)
     }
   }, [addresses, selectedAddressId, setSelectedAddressId])
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [step])
 
   if (showEmptyCartRedirect) {
     return <Navigate to="/cart" replace />

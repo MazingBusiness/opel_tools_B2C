@@ -1,20 +1,27 @@
 import { Link } from 'react-router-dom'
 import { FiCheckCircle } from 'react-icons/fi'
 import { formatPrice } from '../../../shared/utils/formatPrice'
-import { orderItemsTotal } from '../../user/data/mockOrders'
+import { orderItemsTotal } from '../../order/utils/orderTotals'
 
 /**
  * @param {{
  *   order: {
  *     id: string,
- *     paymentMethod: string,
+ *     paymentMethod?: string,
  *     paymentRef?: string | null,
+ *     grandTotal?: number | null,
  *     items: Array<{ unitPrice: number, qty: number }>,
  *   },
  * }} props
  */
 export default function SuccessStep({ order }) {
-  const total = orderItemsTotal(order.items)
+  const total =
+    order.grandTotal != null && Number.isFinite(order.grandTotal)
+      ? order.grandTotal
+      : orderItemsTotal(order.items)
+  const isCod =
+    order.paymentMethod === 'cod' ||
+    order.paymentMethod === 'Cash on delivery'
 
   return (
     <div className="rounded-lg border border-border bg-surface p-6 text-center sm:p-10">
@@ -35,13 +42,15 @@ export default function SuccessStep({ order }) {
           <dd className="font-bold text-ink">{order.id}</dd>
         </div>
         <div className="flex justify-between gap-3">
-          <dt className="text-ink-muted">Amount paid</dt>
+          <dt className="text-ink-muted">{isCod ? 'Amount due' : 'Amount paid'}</dt>
           <dd className="font-bold text-ink">{formatPrice(total)}</dd>
         </div>
-        <div className="flex justify-between gap-3">
-          <dt className="text-ink-muted">Payment method</dt>
-          <dd className="font-semibold text-ink">{order.paymentMethod}</dd>
-        </div>
+        {order.paymentMethod ? (
+          <div className="flex justify-between gap-3">
+            <dt className="text-ink-muted">Payment method</dt>
+            <dd className="font-semibold text-ink">{order.paymentMethod}</dd>
+          </div>
+        ) : null}
         {order.paymentRef ? (
           <div className="flex justify-between gap-3">
             <dt className="text-ink-muted">Transaction ref</dt>
@@ -56,7 +65,7 @@ export default function SuccessStep({ order }) {
 
       <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
         <Link
-          to={`/profile/orders/${order.id}`}
+          to={`/profile/orders/${encodeURIComponent(order.id)}`}
           className="inline-flex items-center justify-center rounded-md bg-highlight px-6 py-3 text-sm font-bold text-cta-foreground transition hover:bg-highlight-dark"
         >
           View order

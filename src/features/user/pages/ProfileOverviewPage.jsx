@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   FiMapPin,
@@ -10,7 +11,7 @@ import SectionHeading from '../../../shared/components/SectionHeading'
 import { useCurrentProfile } from '../hooks/useCurrentProfile'
 import { useAddresses } from '../../address/hooks/useAddresses'
 import { getCompleteness, resolveDisplayName } from '../utils/profileHelpers'
-import { mockOrders } from '../data/mockOrders'
+import { fetchOrders } from '../../order/api/api'
 import ProfileAvatar from '../components/ProfileAvatar'
 import OrderCard from '../components/OrderCard'
 
@@ -19,15 +20,35 @@ export default function ProfileOverviewPage() {
   const { addresses } = useAddresses()
   const displayName = resolveDisplayName(user, profile)
   const completeness = getCompleteness(profile)
-  const inTransit = mockOrders.filter(
+  const [orders, setOrders] = useState(/** @type {any[]} */ ([]))
+
+  useEffect(() => {
+    if (!user) {
+      setOrders([])
+      return
+    }
+    let cancelled = false
+    fetchOrders()
+      .then(({ orders: list }) => {
+        if (!cancelled) setOrders(list)
+      })
+      .catch(() => {
+        if (!cancelled) setOrders([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user])
+
+  const inTransit = orders.filter(
     (order) => order.status === 'processing' || order.status === 'shipped',
   ).length
-  const recent = mockOrders.slice(0, 3)
+  const recent = orders.slice(0, 3)
 
   const stats = [
     {
       label: 'Orders',
-      value: mockOrders.length,
+      value: orders.length,
       hint: 'All time',
       icon: FiPackage,
     },

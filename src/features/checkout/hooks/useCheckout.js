@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuthStore } from '../../../app/store/useAuthStore'
 import { useCartStore } from '../../../app/store/useCartStore'
 import { useAddresses } from '../../address/hooks/useAddresses'
 import { getCartTotals } from '../../cart/utils/cartTotals'
 import { createOrder as createOrderApi } from '../../order/api/api'
+import { clearCartLocal } from '../../cart/api/hydrate'
 import { getErrorMessage } from '../../../shared/api/client'
 
 /** @typedef {'address' | 'review' | 'payment' | 'success'} CheckoutStep */
@@ -22,10 +23,31 @@ export function useCheckout() {
 
   const [step, setStep] = useState(/** @type {CheckoutStep} */ ('address'))
   const [selectedAddressId, setSelectedAddressId] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState(/** @type {'upi' | 'card' | 'netbanking'} */ ('upi'))
   const [isProcessing, setIsProcessing] = useState(false)
   const [paymentError, setPaymentError] = useState('')
-  const [placedOrder, setPlacedOrder] = useState(/** @type {import('../utils/createOrder.js').ReturnType<typeof createOrder> | null} */ (null))
+  /** @type {[import('../components/PaymentStep.jsx').PaymentMethodChoice, function]} */
+  const [paymentMethod, setPaymentMethod] = useState(
+    /** @type {import('../components/PaymentStep.jsx').PaymentMethodChoice} */ ('zoho'),
+  )
+  const [placedOrder, setPlacedOrder] = useState(null)
+  const isProcessingRef = useRef(false)
+
+  useEffect(() => {
+    isProcessingRef.current = isProcessing
+  }, [isProcessing])
+
+  // Browser Back from Zoho restores this page from the back-forward cache with
+  // isProcessing still true. The redirect never returns, so reset here.
+  useEffect(() => {
+    function onPageShow(event) {
+      if (!event.persisted || !isProcessingRef.current) return
+      setIsProcessing(false)
+      setPaymentError('Payment was not completed. You can try again.')
+    }
+
+    window.addEventListener('pageshow', onPageShow)
+    return () => window.removeEventListener('pageshow', onPageShow)
+  }, [])
 
   useEffect(() => {
     if (!selectedAddressId && defaultAddress?.id) {
@@ -84,10 +106,23 @@ export function useCheckout() {
     try {
       const { order, paymentUrl, message, authRequired } = await createOrderApi(
         selectedAddress.id,
+        { paymentMethod },
       )
 
       if (!order?.id) {
         setPaymentError(message || 'Could not create order.')
+        setIsProcessing(false)
+        return
+      }
+
+      // COD: BE cleared cart; show confirmation — never redirect or poll payment-status.
+      if (paymentMethod === 'cod') {
+        clearCartLocal()
+        setPlacedOrder({
+          ...order,
+          paymentMethod: 'Cash on delivery',
+        })
+        setStep('success')
         setIsProcessing(false)
         return
       }
@@ -108,7 +143,7 @@ export function useCheckout() {
       setIsProcessing(false)
       setPaymentError(getErrorMessage(error, 'Could not start payment. Please try again.'))
     }
-  }, [user, selectedAddress, items.length])
+  }, [user, selectedAddress, items.length, paymentMethod])
 
 
   return {
@@ -120,10 +155,10 @@ export function useCheckout() {
     selectedAddressId,
     setSelectedAddressId,
     selectedAddress,
-    paymentMethod,
-    setPaymentMethod,
     isProcessing,
     paymentError,
+    paymentMethod,
+    setPaymentMethod,
     placedOrder,
     goToStep,
     goNext,

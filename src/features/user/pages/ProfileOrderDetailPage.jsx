@@ -1,30 +1,59 @@
 import { Link, useParams } from 'react-router-dom'
-import { useEffect } from 'react'
-import { useOrdersStore } from '../../../app/store/useOrdersStore'
+import { useEffect, useState } from 'react'
+import { fetchOrder } from '../../order/api/api'
+import { paymentStatusLabel } from '../../order/utils/orderStatus'
+import { orderItemsTotal } from '../../order/utils/orderTotals'
 import { formatPrice } from '../../../shared/utils/formatPrice'
-import { orderItemsTotal } from '../data/mockOrders'
+import { getErrorMessage } from '../../../shared/api/client'
 import { OrderStatusBadge } from '../components/OrderCard'
-import { useCurrentProfile } from '../hooks/useCurrentProfile'
 import OrderTimeline from '../components/OrderTimeline'
 
 export default function ProfileOrderDetailPage() {
   const { orderId } = useParams()
-  const { user } = useCurrentProfile()
-  const ensureSeeded = useOrdersStore((s) => s.ensureSeeded)
-  const getOrderById = useOrdersStore((s) => s.getOrderById)
+  const [order, setOrder] = useState(/** @type {Awaited<ReturnType<typeof fetchOrder>>} */ (null))
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    if (user?.id) ensureSeeded(user.id)
-  }, [user?.id, ensureSeeded])
+    if (!orderId) {
+      setLoading(false)
+      return
+    }
+    let cancelled = false
+    setLoading(true)
+    setError('')
+    fetchOrder(orderId)
+      .then((detail) => {
+        if (!cancelled) setOrder(detail)
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setOrder(null)
+          setError(getErrorMessage(err, 'Order not found.'))
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [orderId])
 
-  const order = user?.id ? getOrderById(user.id, orderId ?? '') : null
+  if (loading) {
+    return (
+      <p className="rounded-lg border border-dashed border-border bg-surface-muted px-6 py-12 text-center text-sm text-ink-muted">
+        Loading order…
+      </p>
+    )
+  }
 
   if (!order) {
     return (
       <div className="rounded-lg border border-dashed border-border bg-surface-muted px-6 py-12 text-center">
         <p className="font-semibold text-ink">Order not found</p>
         <p className="mt-1 text-sm text-ink-muted">
-          This demo order may have been removed.
+          {error || 'This order may have been removed or you may not have access.'}
         </p>
         <Link
           to="/profile/orders"
@@ -36,30 +65,34 @@ export default function ProfileOrderDetailPage() {
     )
   }
 
-  const total = orderItemsTotal(order.items)
-  const placed = new Date(order.placedAt).toLocaleString('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
+  const total =
+    order.grandTotal != null && Number.isFinite(order.grandTotal)
+      ? order.grandTotal
+      : orderItemsTotal(order.items)
+  const placed = order.placedAt
+    ? new Date(order.placedAt).toLocaleString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+    : '—'
   const addr = order.shippingAddress
+  const shippingFee = order.shipping ?? 0
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-extrabold tracking-tight text-ink">
-            {order.id}
-          </h2>
+          <h2 className="text-xl font-extrabold tracking-tight text-ink">{order.id}</h2>
           <p className="mt-1 text-sm text-ink-muted">Placed {placed}</p>
         </div>
         <div className="flex items-center gap-2">
           <OrderStatusBadge status={order.status} />
           {order.status === 'shipped' || order.status === 'processing' ? (
             <Link
-              to={`/orders/${order.id}`}
+              to={`/orders/${encodeURIComponent(order.id)}`}
               className="rounded-md bg-highlight px-3 py-1.5 text-xs font-bold text-cta-foreground transition hover:bg-highlight-dark"
             >
               Track order
@@ -79,12 +112,19 @@ export default function ProfileOrderDetailPage() {
         <h3 className="text-sm font-bold text-ink">Items</h3>
         <ul className="mt-3 divide-y divide-border">
           {order.items.map((item) => (
-            <li key={item.productId} className="flex gap-3 py-3 first:pt-0 last:pb-0">
-              <img
-                src={item.imageUrl}
-                alt=""
-                className="size-16 shrink-0 rounded-md border border-border object-cover"
-              />
+            <li
+              key={item.id || item.productId || item.title}
+              className="flex gap-3 py-3 first:pt-0 last:pb-0"
+            >
+              {item.imageUrl ? (
+                <img
+                  src={item.imageUrl}
+                  alt=""
+                  className="size-16 shrink-0 rounded-md border border-border object-cover"
+                />
+              ) : (
+                <span className="size-16 shrink-0 rounded-md border border-border bg-surface-muted" />
+              )}
               <div className="min-w-0 flex-1">
                 <Link
                   to={item.href}
@@ -102,26 +142,37 @@ export default function ProfileOrderDetailPage() {
         </ul>
         <div className="mt-3 flex justify-between border-t border-border pt-3 text-sm">
           <span className="text-ink-muted">Delivery</span>
-          <span className="font-semibold text-success">Free</span>
+          <span className={`font-semibold ${shippingFee > 0 ? 'text-ink' : 'text-success'}`}>
+            {shippingFee > 0 ? formatPrice(shippingFee) : 'Free'}
+          </span>
         </div>
         <div className="mt-2 flex justify-between text-sm">
           <span className="font-bold text-ink">Total</span>
           <span className="font-extrabold text-ink">{formatPrice(total)}</span>
         </div>
-        <p className="mt-2 text-xs text-ink-muted">Paid via {order.paymentMethod}</p>
+        <p className="mt-2 text-xs text-ink-muted">
+          {paymentStatusLabel(order.paymentStatus, order.paymentMethod)}
+        </p>
       </section>
 
-      <section className="rounded-lg border border-border bg-surface p-4 sm:p-5">
-        <h3 className="text-sm font-bold text-ink">Delivery address</h3>
-        <p className="mt-2 text-sm font-semibold text-ink">{addr.name}</p>
-        <p className="mt-1 text-sm leading-relaxed text-ink-muted">
-          {addr.line1}
-          {addr.line2 ? `, ${addr.line2}` : ''}
-          <br />
-          {addr.city}, {addr.state} {addr.pincode}
-        </p>
-        <p className="mt-1 text-sm text-ink">{addr.phone}</p>
-      </section>
+      {addr ? (
+        <section className="rounded-lg border border-border bg-surface p-4 sm:p-5">
+          <h3 className="text-sm font-bold text-ink">Delivery address</h3>
+          {addr.name ? (
+            <p className="mt-2 text-sm font-semibold text-ink">{addr.name}</p>
+          ) : null}
+          <p className="mt-1 text-sm leading-relaxed text-ink-muted">
+            {addr.line1}
+            {addr.line2 ? `, ${addr.line2}` : ''}
+            {(addr.line1 || addr.line2) && (addr.city || addr.state || addr.pincode) ? (
+              <br />
+            ) : null}
+            {[addr.city, addr.state].filter(Boolean).join(', ')}
+            {addr.pincode ? ` ${addr.pincode}` : ''}
+          </p>
+          {addr.phone ? <p className="mt-1 text-sm text-ink">{addr.phone}</p> : null}
+        </section>
+      ) : null}
     </div>
   )
 }
