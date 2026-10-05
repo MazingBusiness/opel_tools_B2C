@@ -94,7 +94,7 @@ export default function Footer() {
                 <Icon className="size-5" aria-hidden />
               </span>
               <div>
-                <h3 className="text-sm font-semibold text-ink">{title}</h3>
+                <p className="text-sm font-semibold text-ink">{title}</p>
                 <p className="mt-1 text-xs leading-relaxed text-ink-muted">
                   {description}
                 </p>
@@ -108,9 +108,9 @@ export default function Footer() {
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
         {linkColumns.map((column) => (
           <div key={column.title}>
-            <h3 className="text-sm font-bold uppercase tracking-wide text-ink">
+            <p className="text-sm font-bold uppercase tracking-wide text-ink">
               {column.title}
-            </h3>
+            </p>
             <ul className="mt-4 space-y-2">
               {column.links.map((link) => (
                 <li key={link.label}>

@@ -39,9 +39,9 @@ export default function ProfileAddressesPage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-extrabold tracking-tight text-ink">
+          <h1 className="text-2xl font-extrabold tracking-tight text-ink">
             Saved addresses
-          </h2>
+          </h1>
           <p className="mt-1 text-sm text-ink-muted">
             Used for delivery at checkout.
           </p>

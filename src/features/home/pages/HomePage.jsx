@@ -8,6 +8,7 @@ import { bannerSections } from '../data/bannerSections'
 export default function HomePage() {
   return (
     <div>
+      <h1 className="sr-only">OPEL Tools — Power Tools & Hand Tools Online</h1>
       <div className="px-4 pt-4">
         <HeroSlider />
       </div>

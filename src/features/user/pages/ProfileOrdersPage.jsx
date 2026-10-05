@@ -47,7 +47,7 @@ export default function ProfileOrdersPage() {
 
   return (
     <div>
-      <h2 className="text-xl font-extrabold tracking-tight text-ink">My orders</h2>
+      <h1 className="text-2xl font-extrabold tracking-tight text-ink">My orders</h1>
       <p className="mt-1 text-sm text-ink-muted">
         Track purchases and reopen past invoices.
       </p>

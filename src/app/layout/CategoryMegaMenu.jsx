@@ -12,7 +12,7 @@ export default function CategoryMegaMenu({ category }) {
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {category.groups.map((group) => (
           <div key={group.title}>
-            <h3 className="text-sm font-bold text-ink">{group.title}</h3>
+            <p className="text-sm font-bold text-ink">{group.title}</p>
             <ul className="mt-3 space-y-2">
               {group.links.map((link) => (
                 <li key={link.slug}>

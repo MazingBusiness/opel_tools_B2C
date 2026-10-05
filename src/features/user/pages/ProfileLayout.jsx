@@ -27,9 +27,9 @@ export default function ProfileLayout() {
       <Breadcrumb items={crumbs} />
 
       <div className="px-4">
-        <h1 className="text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
+        <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
           My Account
-        </h1>
+        </p>
         <p className="mt-1 text-sm text-ink-muted">
           {displayName
             ? `Welcome back, ${displayName}.`

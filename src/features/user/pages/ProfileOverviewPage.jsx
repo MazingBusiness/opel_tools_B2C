@@ -74,6 +74,9 @@ export default function ProfileOverviewPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <h1 className="text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
+        My Account
+      </h1>
       <section className="overflow-hidden rounded-lg border border-border bg-surface">
         <div className="h-1.5 w-full bg-brand" aria-hidden />
         <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:p-5">

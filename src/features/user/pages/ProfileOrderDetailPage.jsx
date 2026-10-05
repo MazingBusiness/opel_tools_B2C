@@ -85,7 +85,7 @@ export default function ProfileOrderDetailPage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-extrabold tracking-tight text-ink">{order.id}</h2>
+          <h1 className="text-2xl font-extrabold tracking-tight text-ink">{order.id}</h1>
           <p className="mt-1 text-sm text-ink-muted">Placed {placed}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -102,14 +102,14 @@ export default function ProfileOrderDetailPage() {
       </div>
 
       <section className="rounded-lg border border-border bg-surface p-4 sm:p-5">
-        <h3 className="text-sm font-bold text-ink">Status</h3>
+        <h2 className="text-sm font-bold text-ink">Status</h2>
         <div className="mt-4">
           <OrderTimeline timeline={order.timeline} />
         </div>
       </section>
 
       <section className="rounded-lg border border-border bg-surface p-4 sm:p-5">
-        <h3 className="text-sm font-bold text-ink">Items</h3>
+        <h2 className="text-sm font-bold text-ink">Items</h2>
         <ul className="mt-3 divide-y divide-border">
           {order.items.map((item) => (
             <li
@@ -157,7 +157,7 @@ export default function ProfileOrderDetailPage() {
 
       {addr ? (
         <section className="rounded-lg border border-border bg-surface p-4 sm:p-5">
-          <h3 className="text-sm font-bold text-ink">Delivery address</h3>
+          <h2 className="text-sm font-bold text-ink">Delivery address</h2>
           {addr.name ? (
             <p className="mt-2 text-sm font-semibold text-ink">{addr.name}</p>
           ) : null}

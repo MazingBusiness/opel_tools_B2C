@@ -74,7 +74,7 @@ export default function ProfileSecurityPage() {
   return (
     <div className="flex flex-col gap-4">
       <section className="rounded-lg border border-border bg-surface p-4 sm:p-5">
-        <h2 className="text-xl font-extrabold tracking-tight text-ink">Security</h2>
+        <h1 className="text-2xl font-extrabold tracking-tight text-ink">Security</h1>
         <p className="mt-1 text-sm text-ink-muted">
           You sign in with OTP or Google. A password is optional extra protection.
         </p>
@@ -103,9 +103,9 @@ export default function ProfileSecurityPage() {
         onSubmit={handlePassword}
         className="rounded-lg border border-border bg-surface p-4 sm:p-5"
       >
-        <h3 className="text-base font-extrabold tracking-tight text-ink">
+        <h2 className="text-base font-extrabold tracking-tight text-ink">
           {passwordSet ? 'Change password' : 'Set a password'}
-        </h3>
+        </h2>
         <p className="mt-1 text-sm text-ink-muted">
           {passwordSet
             ? 'Use a unique password of at least 8 characters.'
@@ -173,9 +173,9 @@ export default function ProfileSecurityPage() {
       <section className="rounded-lg border border-border bg-surface p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h3 className="text-base font-extrabold tracking-tight text-ink">
+            <h2 className="text-base font-extrabold tracking-tight text-ink">
               Active sessions
-            </h3>
+            </h2>
             <p className="mt-1 text-sm text-ink-muted">
               Devices currently signed in to this account.
             </p>

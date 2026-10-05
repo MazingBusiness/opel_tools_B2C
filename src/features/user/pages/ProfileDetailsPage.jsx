@@ -125,9 +125,9 @@ export default function ProfileDetailsPage() {
       onSubmit={handleSubmit}
       className="rounded-lg border border-border bg-surface p-4 sm:p-5"
     >
-      <h2 className="text-xl font-extrabold tracking-tight text-ink">
+      <h1 className="text-2xl font-extrabold tracking-tight text-ink">
         Profile details
-      </h2>
+      </h1>
       <p className="mt-1 text-sm text-ink-muted">
         Update how we address you on orders and delivery.
       </p>
