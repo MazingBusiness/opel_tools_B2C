@@ -6,6 +6,8 @@ import { useProductDetail } from '../hooks/useProductDetail'
 import ProductBuyBox from '../components/ProductBuyBox'
 import ProductDetailTabs from '../components/ProductDetailTabs'
 import RelatedProductsRow from '../components/RelatedProductsRow'
+import SeoPageExtras from '../../seo/components/SeoPageExtras'
+import { seoHeading, useSeo } from '../../seo/hooks/useSeo'
 
 function ProductNotFound() {
   return (
@@ -50,6 +52,8 @@ export default function ProductDetailPage() {
     isError,
     error,
   } = useProductDetail(productId)
+  const seo = useSeo()
+  const seoProduct = seo?.status === 200 && seo.type === 'product' ? seo : null
 
   if (isLoading) {
     return (
@@ -109,9 +113,10 @@ export default function ProductDetailPage() {
         <ProductGallery
           images={product.images}
           alt={product.title}
+          alts={seoProduct?.image_alts}
           className="mx-auto w-full max-w-sm lg:mx-0 lg:max-w-[400px]"
         />
-        <ProductBuyBox product={product} />
+        <ProductBuyBox product={product} heading={seoHeading(seoProduct, product.title)} />
       </div>
 
       <div className="mt-8 px-4 sm:mt-10">
@@ -121,6 +126,8 @@ export default function ProductDetailPage() {
       <div className="px-4">
         <RelatedProductsRow products={related} categorySlug={product.categorySlug} />
       </div>
+
+      <SeoPageExtras seo={seoProduct} />
     </div>
   )
 }

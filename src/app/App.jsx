@@ -4,6 +4,7 @@ import { QueryProvider } from './query/QueryProvider'
 import AppRoutes from './router/AppRoutes'
 import ScrollToTop from './router/ScrollToTop'
 import AuthSessionBootstrap from '../features/auth/components/AuthSessionBootstrap'
+import SeoHead from '../features/seo/components/SeoHead'
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
       <BrowserRouter>
         <AuthSessionBootstrap />
         <ScrollToTop />
+        <SeoHead />
         <AppRoutes />
         <Toaster
           position="top-center"

@@ -11,9 +11,9 @@ import { useWishlist } from '../../wishlist/hooks/useWishlist'
 import { MAX_CART_QTY } from '../../cart/utils/cartTotals'
 
 /**
- * @param {{ product: object }} props
+ * @param {{ product: object, heading?: string }} props
  */
-export default function ProductBuyBox({ product }) {
+export default function ProductBuyBox({ product, heading }) {
   const minQty = Math.max(1, Number(product.minQty) || 1)
   const [quantity, setQuantity] = useState(minQty)
   const navigate = useNavigate()
@@ -58,7 +58,7 @@ export default function ProductBuyBox({ product }) {
   }
 
   const brandLabel = product.brandLabel || '-'
-  const title = product.title || '-'
+  const title = heading || product.title || '-'
   const sku = product.sku || '-'
   const description = product.description || '-'
 

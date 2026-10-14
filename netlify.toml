@@ -1,0 +1,13 @@
+# Netlify config for the OPEL storefront (Vite SPA).
+# Build command / publish dir stay as configured in the Netlify UI.
+#
+# Edge functions: netlify/edge-functions/seo.js injects per-route SEO <head>
+# tags. Its route config (path / excludedPath / cache / onError) is declared
+# inline in the function file, so no [[edge_functions]] block is needed here.
+# Env: SEO_API_BASE_URL (e.g. https://api.opeltools.com), required.
+#      SEO_EDGE_KEY (optional) = same value as the backend's SEO_EDGE_KEY.
+#
+# Redirects/proxies (sitemap.xml, robots.txt → BE; SPA fallback) live in public/_redirects.
+
+[build]
+  edge_functions = "netlify/edge-functions"

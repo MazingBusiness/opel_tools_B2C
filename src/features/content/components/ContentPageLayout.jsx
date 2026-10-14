@@ -1,4 +1,6 @@
 import Breadcrumb from '../../../shared/components/Breadcrumb'
+import SeoPageExtras from '../../seo/components/SeoPageExtras'
+import { seoHeading, useSeo } from '../../seo/hooks/useSeo'
 
 /**
  * Shared chrome for footer / policy content pages.
@@ -22,6 +24,8 @@ export default function ContentPageLayout({
   sections,
   children,
 }) {
+  const seo = useSeo()
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
       <Breadcrumb
@@ -30,7 +34,7 @@ export default function ContentPageLayout({
       />
 
       <h1 className="mt-4 text-2xl font-extrabold tracking-tight text-ink">
-        {title}
+        {seoHeading(seo, title)}
       </h1>
       {updated ? (
         <p className="mt-1 text-xs text-ink-muted">Last updated {updated}</p>
@@ -69,6 +73,8 @@ export default function ContentPageLayout({
       ) : null}
 
       {children}
+
+      <SeoPageExtras seo={seo} className="py-8" />
     </div>
   )
 }

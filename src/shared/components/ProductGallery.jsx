@@ -10,10 +10,11 @@ const PLACEHOLDER =
  * @param {{
  *   images: string[],
  *   alt: string,
+ *   alts?: Record<string, string>,
  *   className?: string,
  * }} props
  */
-export default function ProductGallery({ images, alt, className = '' }) {
+export default function ProductGallery({ images, alt, alts = {}, className = '' }) {
   const gallery = images.length > 0 ? images : [PLACEHOLDER]
   const [activeIndex, setActiveIndex] = useState(0)
   const activeImage = gallery[activeIndex] ?? gallery[0]
@@ -23,7 +24,7 @@ export default function ProductGallery({ images, alt, className = '' }) {
       <div className="overflow-hidden rounded-lg border border-border bg-surface-muted">
         <img
           src={activeImage}
-          alt={alt}
+          alt={alts?.[activeImage] || alt}
           className="aspect-[4/5] w-full max-h-[420px] object-cover sm:aspect-square sm:max-h-[400px]"
           onError={(event) => {
             event.currentTarget.onerror = null
@@ -49,7 +50,7 @@ export default function ProductGallery({ images, alt, className = '' }) {
               >
                 <img
                   src={image}
-                  alt=""
+                  alt={alts?.[image] || ''}
                   className="size-full object-cover"
                   onError={(event) => {
                     event.currentTarget.onerror = null

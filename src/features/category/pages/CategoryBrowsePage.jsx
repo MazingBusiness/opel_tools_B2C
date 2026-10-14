@@ -5,10 +5,13 @@ import { getCategoryNode } from '../data/categoryCatalog'
 import SubcategoryStrip from '../components/SubcategoryStrip'
 import ChildSpotlightRow from '../components/ChildSpotlightRow'
 import CategoryProductGrid from '../components/CategoryProductGrid'
+import SeoPageExtras from '../../seo/components/SeoPageExtras'
+import { seoHeading, useSeo } from '../../seo/hooks/useSeo'
 
 export default function CategoryBrowsePage() {
   const { categorySlug, subSlug } = useParams()
   const resolved = getCategoryNode(categorySlug, subSlug)
+  const seo = useSeo()
 
   if (!resolved) {
     const fallback = subSlug
@@ -33,7 +36,7 @@ export default function CategoryBrowsePage() {
 
       <header className="px-4 pt-6 sm:pt-8">
         <h1 className="text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
-          {node.title}
+          {seoHeading(seo, node.title)}
         </h1>
         {node.description ? (
           <p className="mt-1 w-full text-sm leading-relaxed text-ink-muted sm:text-base">
@@ -64,6 +67,8 @@ export default function CategoryBrowsePage() {
         loadMoreHref={node.productsHref}
         title={`Popular in ${node.title}`}
       />
+
+      <SeoPageExtras seo={seo} />
     </div>
   )
 }

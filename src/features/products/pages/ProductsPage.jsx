@@ -15,10 +15,15 @@ import ActiveFilterChips from '../components/ActiveFilterChips'
 import ProductResultsGrid from '../components/ProductResultsGrid'
 import ProductPagination from '../components/ProductPagination'
 import { PRODUCT_GRID_CLASS } from '../utils/productGridLayout'
+import SeoPageExtras from '../../seo/components/SeoPageExtras'
+import { seoHeading, useSeo } from '../../seo/hooks/useSeo'
 
 export default function ProductsPage() {
   const [searchParams] = useSearchParams()
   const legacyId = searchParams.get('id')
+  const seo = useSeo()
+  // Admin SEO copy applies to the bare /products listing only, not filtered/search views.
+  const isBareListing = searchParams.toString() === ''
 
   const {
     gridRef,
@@ -119,7 +124,7 @@ export default function ProductsPage() {
 
       <header className="px-4 pt-4 sm:pt-6">
         <h1 className="text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
-          {pageTitle}
+          {isBareListing ? seoHeading(seo, pageTitle) : pageTitle}
         </h1>
         {filters.q ? (
           <p className="mt-1 text-sm text-ink-muted">
@@ -201,6 +206,8 @@ export default function ProductsPage() {
           ) : null}
         </div>
       </div>
+
+      {isBareListing ? <SeoPageExtras seo={seo} /> : null}
 
       <ProductFiltersDrawer
         open={drawerOpen}

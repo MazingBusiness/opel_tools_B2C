@@ -4,11 +4,15 @@ import CategorySection from '../components/CategorySection'
 import BannerSection from '../components/BannerSection'
 import { categorySections } from '../data/categorySections'
 import { bannerSections } from '../data/bannerSections'
+import SeoPageExtras from '../../seo/components/SeoPageExtras'
+import { seoHeading, useSeo } from '../../seo/hooks/useSeo'
 
 export default function HomePage() {
+  const seo = useSeo()
+
   return (
     <div>
-      <h1 className="sr-only">OPEL Tools — Power Tools & Hand Tools Online</h1>
+      <h1 className="sr-only">{seoHeading(seo, 'OPEL Tools — Power Tools & Hand Tools Online')}</h1>
       <div className="px-4 pt-4">
         <HeroSlider />
       </div>
@@ -27,6 +31,8 @@ export default function HomePage() {
           )
         })}
       </div>
+
+      <SeoPageExtras seo={seo} />
     </div>
   )
 }
